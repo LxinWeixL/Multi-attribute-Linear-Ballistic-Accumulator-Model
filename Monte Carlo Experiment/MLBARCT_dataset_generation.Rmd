@@ -22,7 +22,7 @@ library(RcppArmadillo)
 library(RcppEigen)
 library(RcppNumerical)
 library(truncnorm)
-file_route = "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\MLBA.cpp"
+file_route = "...\\Monte Carlo Experiment\\MLBA.cpp" # your own route
 ```
 
 
@@ -199,11 +199,12 @@ head(df, 16)
 
 ```{r}
 # export dataset
-# write.csv(df, "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\simulations\\MLBARCT_data_0801_800.csv", row.names=FALSE)
+# write.csv(df, "MLBARCT_data_0801_800.csv", row.names=FALSE)
 
-# write.csv(df, "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\simulations\\MLBARCT_data_0801_800(test).csv", row.names=FALSE)
+# write.csv(df, "MLBARCT_data_0801_800(test).csv", row.names=FALSE)
 
 ```
+
 
 
 
