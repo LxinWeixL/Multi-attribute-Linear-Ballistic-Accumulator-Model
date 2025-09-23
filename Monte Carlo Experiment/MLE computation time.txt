@@ -1,0 +1,742 @@
+The MLE estimation of CRT with 50 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 50 observations simulation takes:: 12.78 sec elapsed
+The MLE estimation of RTG with 50 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 50 observations simulation takes:: 21.25 sec elapsed
+The MLE estimation of CO with 50 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 50 observations simulation takes:: 2009.31 sec elapsed
+The MLE estimation of CRT with 80 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 80 observations simulation takes:: 9.6 sec elapsed
+The MLE estimation of RTG with 80 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 80 observations simulation takes:: 38.61 sec elapsed
+The MLE estimation of CO with 80 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 80 observations simulation takes:: 3535.19 sec elapsed
+The MLE estimation of CRT with 100 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 100 observations simulation takes:: 13.19 sec elapsed
+The MLE estimation of RTG with 100 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 100 observations simulation takes:: 70.51 sec elapsed
+The MLE estimation of CO with 100 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 100 observations simulation takes:: 3310.12 sec elapsed
+The MLE estimation of CRT with 200 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 200 observations simulation takes:: 13.32 sec elapsed
+The MLE estimation of RTG with 200 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 200 observations simulation takes:: 74.64 sec elapsed
+The MLE estimation of CO with 200 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 200 observations simulation takes:: 7808.59 sec elapsed
+The MLE estimation of CRT with 400 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 400 observations simulation takes:: 26.16 sec elapsed
+The MLE estimation of RTG with 400 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 400 observations simulation takes:: 175.04 sec elapsed
+The MLE estimation of CO with 400 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 400 observations simulation takes:: 13410.31 sec elapsed
+The MLE estimation of CRT with 600 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 600 observations simulation takes:: 23.24 sec elapsed
+The MLE estimation of RTG with 600 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 600 observations simulation takes:: 204.42 sec elapsed
+The MLE estimation of CO with 600 has started:
+3% process has been found.
+7% process has been found.
+10% process has been found.
+13% process has been found.
+17% process has been found.
+20% process has been found.
+23% process has been found.
+27% process has been found.
+30% process has been found.
+33% process has been found.
+37% process has been found.
+40% process has been found.
+43% process has been found.
+47% process has been found.
+50% process has been found.
+53% process has been found.
+57% process has been found.
+60% process has been found.
+63% process has been found.
+67% process has been found.
+70% process has been found.
+73% process has been found.
+77% process has been found.
+80% process has been found.
+83% process has been found.
+87% process has been found.
+90% process has been found.
+93% process has been found.
+97% process has been found.
+100% process has been found.
+CO for 600 observations simulation takes:: 23052.14 sec elapsed
+The MLE estimation of CRT with 800 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 800 observations simulation takes:: 36.93 sec elapsed
+The MLE estimation of RTG with 800 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 800 observations simulation takes:: 199.18 sec elapsed
+-----------------------------------------------------------------------
+The MLE estimation of CRT with 50 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 50 observations simulation takes:: 25.12 sec elapsed
+The MLE estimation of CRT with 80 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 80 observations simulation takes:: 13.5 sec elapsed
+The MLE estimation of CRT with 100 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 100 observations simulation takes:: 13.64 sec elapsed
+The MLE estimation of CRT with 200 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 200 observations simulation takes:: 17.51 sec elapsed
+The MLE estimation of CRT with 400 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 400 observations simulation takes:: 32.82 sec elapsed
+The MLE estimation of CRT with 600 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 600 observations simulation takes:: 30.79 sec elapsed
+The MLE estimation of CRT with 800 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+CRT for 800 observations simulation takes:: 47.34 sec elapsed
+-------------------------------------------------------------
+The MLE estimation of RTG with 50 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+has tried 50 different initial values.
+90% process has been found.
+100% process has been found.
+RTG for 50 observations simulation takes:: 24.31 sec elapsed
+The MLE estimation of RTG with 80 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+has tried 50 different initial values.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 80 observations simulation takes:: 53.19 sec elapsed
+The MLE estimation of RTG with 100 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+has tried 50 different initial values.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 100 observations simulation takes:: 58.37 sec elapsed
+The MLE estimation of RTG with 200 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+has tried 50 different initial values.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 200 observations simulation takes:: 76.6 sec elapsed
+The MLE estimation of RTG with 400 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+has tried 50 different initial values.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 400 observations simulation takes:: 211.06 sec elapsed
+The MLE estimation of RTG with 600 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+has tried 50 different initial values.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 600 observations simulation takes:: 212.38 sec elapsed
+The MLE estimation of RTG with 800 has started:
+10% process has been found.
+20% process has been found.
+30% process has been found.
+40% process has been found.
+50% process has been found.
+60% process has been found.
+70% process has been found.
+has tried 50 different initial values.
+80% process has been found.
+90% process has been found.
+100% process has been found.
+RTG for 800 observations simulation takes:: 287.86 sec elapsed
+---------------------------------------------------------------
+The MLE estimation of CO with 100 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+13% candidates have been found.
+has tried 50 different initial values.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+has tried 100 different initial values.
+27% candidates have been found.
+30% candidates have been found.
+33% candidates have been found.
+37% candidates have been found.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 100 observations simulation takes:: 3067.7 sec elapsed
+
+The MLE estimation of CO with 50 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+13% candidates have been found.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+27% candidates have been found.
+has tried 50 different initial values.
+30% candidates have been found.
+33% candidates have been found.
+has tried 100 different initial values.
+37% candidates have been found.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 50 observations simulation takes:: 1534.8 sec elapsed
+The MLE estimation of CO with 80 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+13% candidates have been found.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+27% candidates have been found.
+30% candidates have been found.
+33% candidates have been found.
+37% candidates have been found.
+has tried 50 different initial values.
+has tried 100 different initial values.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 80 observations simulation takes:: 1629.81 sec elapsed
+The MLE estimation of CO with 200 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+13% candidates have been found.
+has tried 50 different initial values.
+has tried 100 different initial values.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+27% candidates have been found.
+30% candidates have been found.
+33% candidates have been found.
+37% candidates have been found.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 200 observations simulation takes:: 6393.55 sec elapsed
+The MLE estimation of CO with 400 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+has tried 50 different initial values.
+13% candidates have been found.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+27% candidates have been found.
+30% candidates have been found.
+has tried 100 different initial values.
+33% candidates have been found.
+37% candidates have been found.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 400 observations simulation takes:: 9026.61 sec elapsed
+CO for 600 observations simulation takes:: 3067.31 sec elapsed
+The MLE estimation of CO with 800 has started:
+3% candidates have been found.
+7% candidates have been found.
+10% candidates have been found.
+13% candidates have been found.
+17% candidates have been found.
+20% candidates have been found.
+23% candidates have been found.
+27% candidates have been found.
+30% candidates have been found.
+33% candidates have been found.
+37% candidates have been found.
+40% candidates have been found.
+43% candidates have been found.
+47% candidates have been found.
+50% candidates have been found.
+53% candidates have been found.
+57% candidates have been found.
+60% candidates have been found.
+63% candidates have been found.
+67% candidates have been found.
+70% candidates have been found.
+73% candidates have been found.
+77% candidates have been found.
+80% candidates have been found.
+83% candidates have been found.
+87% candidates have been found.
+90% candidates have been found.
+93% candidates have been found.
+97% candidates have been found.
+100% candidates have been found.
+CO for 800 observations simulation takes:: 3835.11 sec elapsed
