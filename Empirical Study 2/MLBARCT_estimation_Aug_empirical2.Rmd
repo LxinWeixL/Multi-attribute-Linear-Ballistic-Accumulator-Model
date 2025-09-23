@@ -1,0 +1,1215 @@
+---
+title: "MLBARCRT EVs semi-simulated dataset under Hancock model"
+author: "Xinwei Li\n li.xinwei@u.nus.edu"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+      highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list = ls())
+
+
+```
+
+# 1. Data import
+```{r, echo=FALSE, message=FALSE,results='hide'}
+library(tictoc)
+library(doParallel)
+library(Rcpp)
+library(RcppArmadillo)
+library(RcppEigen)
+library(RcppNumerical)
+library(plyr)
+library(data.table)
+library(readr)
+library(crayon)
+library(ggplot2)
+library(bayestestR)
+library(coda)
+library(beepr)
+file_route = "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\MLBA.cpp"
+
+df = read.csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/datasets/ET_comparison-main/Compiled_data/TRANSPORT/data_merged_monitor_exp1_WL.csv")
+df2 = read.csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/datasets/ET_comparison-main/Compiled_data/TRANSPORT/data_merged_laptop_exp1_WL.csv")
+df = rbind(df,df2)
+head(df)
+
+
+sourceCpp(file = file_route)
+```
+
+choice dataset preprocessing
+```{r}
+# reorganize columns
+df = df[,c("pid","Trial","Device","TrialDuration",
+           "RH_cost",	"RH_travel_time",	"RH_Comfort",
+           "metro_cost",	"metro_travel_time",	"metro_Comfort",
+           "Bus_cost",	"Bus_travel_time",	"Bus_Comfort","Choice")]
+colnames(df) = c("pid","tid","did","rt",
+                 "RH_cost",	"RH_travel_time",	"RH_Comfort",
+                 "metro_cost",	"metro_travel_time",	"metro_Comfort",
+                 "Bus_cost",	"Bus_travel_time",	"Bus_Comfort","rc")
+
+df$rc[which(df$rc=="RH_label")]=1
+df$rc[which(df$rc=="Metro_label")]=2
+df$rc[which(df$rc=="Bus_label")]=3
+df$rc = factor(df$rc)
+df$did[which(df$did=="Monitor")] = "monitor"
+df$did[which(df$did=="Laptop")] = "laptop"
+
+head(df)
+
+
+```
+
+
+```{r}
+# Data cleaning to exclude low quality RT 
+
+sd_rt = sd(log(df$rt))
+mean_rt = mean(log(df$rt))
+index_L = which(log(df$rt)<(mean_rt-3*sd_rt))
+index_U = which(log(df$rt)>(mean_rt+3*sd_rt))
+
+print(c(index_L,"\n",index_U))  
+# [1] "691" "\n"  "219" "447" "454" "682"
+print(df[c(index_L,index_U),]) 
+df = df[-c(index_L,index_U),]
+# 1.555053; 18.78163
+```
+
+
+# 2. MLBA prepration
+## 2.1 hyperparameter setting
+
+```{r}
+true_param = list(A = 10,s0 = 1,lam1 = 1,lam2 = 0,alpha = -1,zeta = c(0,0,1),b = 1,type = 1,  attention = 0,beta = c(0,0,0)) 
+
+sourceCpp(file_route)
+nAttr = 3
+nAlt = 3
+npar = nAttr  +2 + 1 # + (nAlt-1)
+zeta_index =c() #(nAttr+1):(nAlt+nAttr-1)#c() 
+```
+
+## 2.2 De-MCMC setup
+```{r}
+
+# function to retrive choice-RT and attribute infos from given dataframe
+ df_info = function(df){
+  res = list()  # four iterms: N;attrs;RC;RT
+  # observation number
+  res$N = nrow(df)
+  # build attrs matrix 
+  X_wide = df[,5:13]  #df[,6:14]
+  tmp = unlist(sapply(1:res$N, function(x){return(matrix(X_wide[x,]))})) 
+  X_long = t(matrix(tmp,nrow = nAttr,byrow =F))
+  attrs = X_long 
+
+  attrs[,1] = -attrs[,1]
+  attrs[,2] = -attrs[,2]/60
+  attrs[,3] = attrs[,3]
+
+  res$attrs = attrs
+  # value RT and RC
+  res$RC = df$rc; res$RT = df$rt
+  return(res)
+}
+
+##########################################
+# self-designed parameter transformation 
+para_fun=function(para){
+  current_para_list = list()
+  current_para_list$beta = para[1:nAttr]
+  # current_para_list$zeta = c(para[(nAttr+1)]+true_param$zeta[nAlt],para[(nAttr+2)]+true_param$zeta[nAlt],true_param$zeta[nAlt])
+  current_para_list$zeta = rep(true_param$zeta[nAlt],nAlt)
+  
+  current_para_list$lam1 = para[npar-2]
+  current_para_list$lam2 = para[npar-1]
+  current_para_list$A = true_param$A
+  current_para_list$b = para[npar]+true_param$A
+  current_para_list$s0 =true_param$s0
+  return(current_para_list)
+}
+
+###########################################################
+# function to return the log-posterior of given parameter
+poster = function(para_list){
+  
+  para = as.numeric(para_list$para)
+  type = para_list$type
+  prior = rep(-1,length(para))
+  if(length(zeta_index)!=0){
+    prior[zeta_index] = dunif(para[zeta_index], min = -50, max = 50,log = T)
+    prior[-zeta_index] = dunif(para[-zeta_index], min = 0, max = 100,log = T)
+  }else{
+    prior = dunif(para, min = 0, max = 100,log = T)
+  }
+  
+  # prior[1:nAttr] = dunif(para[1:nAttr], min = -100, max = 100,log = T)
+  
+  prior[(npar-2):(npar-1)] =  dunif(para[(npar-2):(npar-1)], min = 0, max = 10,log = T)
+  
+ 
+  
+  para_tmp = para_fun(para = para)
+  
+if(type=="CRT"){
+ temp = sum(prior) +  RCPPMLBA_Lik_rtknown(X = attrs,beta = para_tmp$beta, zeta = para_tmp$zeta,lam1 = para_tmp$lam1,lam2 = para_tmp$lam2,b = para_tmp$b, s = para_tmp$s0, A =para_tmp$A, choice = RC, rt = RT)
+   
+}else if(type=="RTG"){
+  temp = sum(prior) +  RCPPMLBA_Lik_rtg(X = attrs,beta = para_tmp$beta, zeta = para_tmp $zeta,lam1 = para_tmp$lam1,lam2 = para_tmp$lam2,b = para_tmp$b, s = para_tmp$s0, A =para_tmp$A, choice = RC, rt = RT)
+    
+}else{
+  temp = sum(prior) + RCPPMLBA_Lik_CO(X = attrs,beta = para_tmp$beta, zeta = para_tmp$zeta,lam1 = para_tmp$lam1,lam2 = para_tmp$lam2,b = para_tmp$b, s = para_tmp$s0, A =para_tmp$A, choice = RC)
+    
+}
+  if(is.na(temp)) temp = -Inf
+  
+  return (temp)
+}
+############################################
+# initial function
+chain_intial = function(type0,K,npar){
+# initialize chains. the last column is for likelihood
+  set.seed(2025)
+chain_int = matrix(nrow = K, ncol = npar+1)
+chain_list = list()
+theta_0 = chain_int
+  if(length(zeta_index)!=0){
+    theta_0[,zeta_index] = runif(K*length(zeta_index), min = -50, max = 50)
+    theta_0[,-c(zeta_index,npar+1)] = runif(K*(npar-length(zeta_index)), min = 0 , max = 100)
+  }else{
+    theta_0[,-c(npar+1)] = runif(K*npar, min = 0, max = 100)
+  }
+
+  # theta_0[,1:nAttr] = runif(K*nAttr, min = -100 , max = 100)
+  theta_0[,(npar-2):(npar-1)] = runif(K*2, min = 0 , max = 5)
+
+theta_0[,(npar+1)] = sapply(1:K, function(x){return (poster(para_list = list(para = theta_0[x,-(npar+1)], type = type0) ))})
+
+# check whether All Likelihood is smaller than Inf
+index = which(is.infinite(theta_0[,(npar+1)]))
+
+while (length(index)) {
+  if(length(zeta_index)!=0){
+  theta_0[index,zeta_index] = runif(length(index)*length(zeta_index), min =-50, max = 50) #100
+  theta_0[index,-c(zeta_index,npar+1)] = runif(length(index)*(npar-length(zeta_index)), min = 0, max = 100)
+  # theta_0[index,1:nAttr] = runif(length(index)*nAttr, min = -100 , max = 100)
+  }else{
+    theta_0[index,-c(npar+1)] = runif(length(index)*npar, min = 0, max = 100)
+  }
+  theta_0[index,(npar-2):(npar-1)] = runif(length(index)*2, min = 0 , max = 5)
+  
+
+  theta_0[index,(npar+1)] = sapply(index, function(x){return (poster(para_list = list(para = theta_0[x,-(npar+1)], type = type0)))})
+  index = which(is.infinite(theta_0[,(npar+1)]))
+
+  # print(paste("Still has", length(index), "to find."))
+}
+chain_list[[1]] = theta_0
+
+return(chain_list)
+}
+
+###########################################
+# cross-over step
+Update_para = function(para){
+  # para = list(ChainIndex,last_chainlist,gamma)
+  # last_chainlist is a matrix each row means the last step value of each chain and the last column is the liklihood of the corresponding parameters
+ 
+  theta_prev = para$last_chain[para$ChainIndex,-(npar+1)]
+  # randomly draw two chain from all chains except current chain
+  de_ChainIndex = sample(probset[-para$ChainIndex], size = 2,replace = FALSE)
+  theta_m = para$last_chain[de_ChainIndex[1],-(npar+1)] 
+  theta_n = para$last_chain[de_ChainIndex[2],-(npar+1)] 
+  # generate new theta, the here are 6 parameters to estimate in total
+  add = runif(npar, min = -0.001, max = 0.001)
+  theta_new = theta_prev + para$gamma* (theta_m - theta_n) + add
+  
+  new_post = poster(para_list = list(para = theta_new, type = type0) )
+  prev_post = para$last_chain[para$ChainIndex,(npar+1)]
+
+  # accept rate
+  alpha = runif(1)
+  
+  ratio = exp(new_post-prev_post)
+  #if(is.na(ratio)) ratio = 0
+  if( alpha> ratio) temp = c(theta_prev,prev_post) else temp = c(theta_new,new_post)
+    
+  
+  return(temp)
+}
+######################################### 
+## update chains
+De_MCMC_unit = function(prev, X, gam1){
+  
+  para = list(ChainIndex = X, last_chain = prev, gamma = gam1)#runif(1,.5,1)
+  Update_para(para)
+}
+
+#########################################
+# migrate step
+migrate_step = function(current_chain_list){
+    temp_ssize = ceiling(runif(1,min = 1, max = K))
+    temp_sample =sample(1:K,temp_ssize,replace = FALSE)
+    
+    theta_res = current_chain_list[temp_sample[1],]
+    for (g in 1:temp_ssize){
+     temp_theta = current_chain_list[temp_sample[g],-(npar+1)]
+     add = runif(npar, min = -0.01, max = 0.01)#npar
+    
+      if(g==1) new_theta = current_chain_list[temp_sample[temp_ssize],-(npar+1)] +add
+     # previous item 
+      else  new_theta = theta_res[-(npar+1)] + add
+     
+      new_post = poster(para_list = list(para = new_theta, type = type0))
+      prev_post = theta_res[(npar+1)]
+      theta_res = current_chain_list[temp_sample[g],]
+      
+      alpha = runif(1)
+      ratio = exp(new_post-prev_post)
+      #if(is.na(ratio)) ratio = 0
+      if(alpha<ratio)  current_chain_list[temp_sample[g],] = c(new_theta,new_post)
+    }
+    
+    return(current_chain_list)
+}
+###########################################
+# parall_computing
+
+demcmc_fun = function(chain_list, burn_in, M, mig_rate, type0, probset, K, N, npar, RC, RT, attrs,version,continuous = 0,df_type){
+  
+for (j in (1+continuous):(M+continuous)) {
+
+  chain_list[[j+1]] = t(parSapply(X = 1:K, FUN = De_MCMC_unit, prev = chain_list[[j]], gam1 = gam, cl = cl))
+  
+  # immigration step (only works at certain steps at early stage)
+  if ((j<round(continuous+burn_in*0.75))&(runif(1)<mig_rate)){
+chain_list[[j+1]] = migrate_step(current_chain_list = chain_list[[j+1]])}
+  if(type0=="CO"){
+    if(j%%1e2==0) message(paste("Simulation progress:" ,round(j/(M+continuous)*100,2) ,"% has finished.",sep = " "))
+  }
+  else{
+    if(j%%1e3==0) message(paste("Simulation progress:" ,round(j/(M+continuous)*100,2) ,"% has finished.",sep = " "))
+  }
+  
+  if(j%%1000==0) {saveRDS(chain_list, file = paste0("chain_list_",type0,"_",df_type,"(",npar,")_",N,version,".rds",sep=""))}
+  } 
+  
+return(list(chain_list=chain_list,path = paste0("chain_list_",type0,"_",df_type,"(",npar,")_",N,version,".rds",sep="")))
+}
+########################################
+# result generation
+result_fun = function(type0, N, attrs,version,df_type){
+  set.seed(2025)
+  path = paste0("chain_list_",type0,"_",df_type,"(",npar,")_",N,version,".rds",sep="")
+  chain_all = readRDS(file = path)
+  npar = dim(chain_all[[1]])[2]-1
+  K = dim(chain_all[[1]])[1]
+  M = length(chain_all)-1
+  burn_in = round(M/2,0)
+  
+  
+  thin = sort(sample((burn_in*1.5):(M),300,replace = F)) #RTG 200
+
+  # est1 = sapply(chain_all[thin], colMeans)
+  # est2 = sapply(chain_all, function(x){apply(x,2,sd)})
+  # est3 = sapply(chain_all[thin], function(x){apply(x, 2, median)})
+  # if(length(zeta_index)!=0){
+  #   est3[zeta_index,] = est3[zeta_index,] +true_param$zeta[3]}
+  # 
+  # est_median = est3
+
+  true_value = c(true_param$beta,
+               # true_param$zeta[-3],
+               true_param$lam1,
+               true_param$lam2,
+               #true_param$A,
+               true_param$b+true_param$A,
+               poster(para_list = list(para = 
+                      c(true_param$beta,
+                        # true_param$zeta[-3]-true_param$zeta[3],
+                        true_param$lam1,
+                        true_param$lam2,#),
+                        #true_param$A,
+                        true_param$b),
+                 type = type0)))
+  true_value_v2 = true_value
+  true_value_v2[zeta_index] =true_value_v2[zeta_index] -true_param$zeta[nAlt]
+  # DE_MLE
+  est_MLE = rbind.fill.matrix(chain_all)
+  MLE_index = which.max(est_MLE[,(npar+1)])
+  MLE_value = est_MLE[MLE_index,]
+  #
+  Supper_chain = array(dim = c(K,length(thin),npar+1))
+  for(i in 1:K){
+  Supper_chain[i,,] = t(sapply(chain_all[thin], function(x){return(x[i,])}))
+  }
+  post = matrix(nrow = npar+1,ncol = K*length(thin))
+  post_sd = rep(NULL,npar+1)
+  post_mcerror = rep(NULL,npar+1)
+  post_mse = rep(NULL,npar+1)
+  for (j in 1:(npar+1)){
+    post[j,] = matrix(Supper_chain[,,j],nrow = 1)
+    post_sd[j] = sd(post[j,])
+    post_mcerror[j] =sd(post[j,])/sqrt(2*effectiveSize(post[j,]))
+    post_mse[j] = sqrt(mean((post[j,]-true_value_v2[j])^2))
+  }
+  
+  
+  
+  post_mean = apply(post,1, mean)
+  post_mean[npar+1] = poster(para_list = list(para = post_mean[-(npar+1)],type = type0))
+  if(length(zeta_index)!=0){post_mean[zeta_index] = post_mean[zeta_index]+true_param$zeta[3]}
+    
+  post_median = apply(post , 1, median)
+  post_median[npar+1] = poster(para_list = list(para = post_median[-(npar+1)],type = type0))
+  if(length(zeta_index)!=0){
+    post_median[zeta_index] = post_median[zeta_index]+true_param$zeta[3]
+    post[zeta_index,] = post[zeta_index,]+true_param$zeta[3]
+    Supper_chain[,,zeta_index] = Supper_chain[,,zeta_index]+true_param$zeta[3]}
+  
+name = c("betaTC","betaTT","betaCL", 
+         # "zetaRH","zetaM",
+         "lam1", "lam2" ,"b-A","Lik")
+  
+  HDI_para = apply(post, 1,function(x){temp = hdi(x, ci = 0.95, verbose = FALSE); return (c(temp$CI_low, temp$CI_high))},simplify = TRUE)
+  MLE_value[zeta_index] = MLE_value[zeta_index]+true_param$zeta[3]
+  result4 = data.frame( #true =true_value,
+                        est_mean = round(post_mean,3),
+                        est_median = round(post_median,3), 
+                        sd = round(post_sd,3),
+                        hdi_95 = c(sapply(1:npar, function(x){paste("( ", round(t(HDI_para)[x,1],3),", ",round(t(HDI_para)[x,2],3),")")}),"-"),
+                        #mse = round(post_mse,3),
+                        MLE = round(est_MLE[MLE_index,],3))
+                        
+  post_app = rep(NULL,npar+1)
+  rownames(result4) = name
+  write.csv(post,paste("Post_",df_type,"_",N,"_",type0,"Aug_",version, ".csv",sep=""))
+  return(result4)
+  write.csv(result4,paste0(type0,"_post_",df_type,"_",N,version,".rds",".csv",step = ""))
+}
+
+
+```
+
+## 2.3 MLE setup
+```{r}
+library(optimParallel)
+##############################
+# likelihood function
+LL = function(para,type0){
+  temp = poster(para_list = list(para = para, type0 = type0))#-log(1/200)*(npar-2)-log(1/5)*2
+  if(is.na(temp)) temp = -Inf
+  if(is.infinite(temp)|temp<(-1e10)) temp = -1e10
+  return(temp)
+}
+
+gn = function(para,type0){
+  para_list = para_fun(para = para)
+ if(type0=="CRT"){
+   temp = score_mlba_crt_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b = para_list$b, s = para_list$s0, A =para_list$A, choice = RC, rt = RT)
+ }else if (type0=="RTG"){
+   temp = score_mlba_rtg_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b = para_list$b, s = para_list$s0, A =para_list$A, choice = RC, rt = RT)
+ }else{
+   temp = score_mlba_co_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b = para_list$b, s = para_list$s0, A =para_list$A, choice = RC)
+ }
+  # temp = numDeriv::grad(func = LL1,x = para)
+  # temp = temp[-(nAttr+nAlt-1+2-1)]
+  for(tempi in 1:length(temp)){
+    if(is.na(temp[tempi])) temp[tempi] = 0
+  if(is.infinite(temp[tempi])) {
+    if(temp[tempi]>0) {temp[tempi] = 1e6}
+    else {temp[tempi] = -1e6}
+  }
+    }
+  return(temp)
+}
+
+gnBHHH =  function(para,type0){
+ para_list = para_fun(para = para)
+ if(type0 == "CRT"){
+   temp = t(sapply(1:N, function(x){score_mlba_crt_all(attrs[(nAlt*(x-1)+1):(nAlt*x),],beta =  para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC[x], rt = RT[x])}))
+ }else if (type0 == "RTG"){
+   temp = t(sapply(1:N, function(x){score_mlba_rtg_all(attrs[(nAlt*(x-1)+1):(nAlt*x),],beta =  para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC[x], rt = RT[x])}))
+ }else{
+   temp = t(sapply(1:N, function(x){score_mlba_co_all(attrs[(nAlt*(x-1)+1):(nAlt*x),],beta =  para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC[x])}))
+ }
+  return(temp)
+}
+
+Hessian_BHHH =  function(para,type0){
+ para_list = para_fun(para = para)
+ if(type0 == "CRT"){
+   temp = derivative_mlba_crt_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC, rt = RT)
+ }else if (type0=="RTG"){
+   temp = derivative_mlba_rtg_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC, rt = RT)
+ }else{
+   temp = derivative_mlba_co_all(attrs,beta = para_list$beta,zeta = para_list$zeta,lam1 = para_list$lam1,lam2 = para_list$lam2,b =para_list$b, s = para_list$s0, A =para_list$A, choice = RC)
+ }
+ for(tmpi in 1:dim(temp)[1]){
+   for(tmpj in 1:dim(temp)[2]){
+     if(is.na(temp[tmpi,tmpj])) temp[tmpi,tmpj] = 0
+     else if (is.infinite(temp[tmpi,tmpj])) {
+       if(temp[tmpi,tmpj>0]) temp[tmpi,tmpj]=1e6
+       else temp[tmpi,tmpj]=-1e6
+     }
+     
+     }}
+ 
+  return(temp)
+}
+#########################
+mle_fun = function(type0, N, attrs, npar, RC, RT, try_times, MAP_value,Mean_value,Median_value,L_vec,cl,pgtol,version,df_type){
+  # set up mle
+  set.seed(2025)
+  est_mle1_adj_v1 = matrix(nrow = npar+1, ncol = try_times)
+  mle1_list_adj_v1 = list()
+  mle1_list_sd_v1 = list()
+  i = 1;k = 1
+ 
+  while(i<=try_times){
+      if(k==1){
+        par_value = MAP_value
+      }
+      else if(k==2) {
+        par_value = Mean_value
+      }
+    else if(k==3) {
+        par_value = Median_value
+      }
+      else {
+      tmp_alpha = runif(1)
+      tmpt_value = ifelse(tmp_alpha<0.5,ifelse(tmp_alpha<0.2,Mean_value,Median_value),MAP_value)
+      tmpt_value = MAP_value
+      if(k<50){
+        
+       noise = runif(npar,min = -1,max = 1)
+      noise[(npar-1):(npar)] =  runif(2,min = - 0.1,max = 0.1) 
+      }else if (k<100){
+        if(k==51) message("has tried 50 different initial values.")
+        noise = runif(npar,min = -5,max = 5)
+      noise[(npar-1):(npar)] =  runif(2,min = - 0.5,max = 0.5) 
+      }else{
+        if(k==101) message("has tried 100 different initial values.")
+        noise = runif(npar,min = -10,max = 10)
+      noise[(npar-1):(npar)] =  runif(2,min = - 1,max = 1) 
+      }
+      
+      
+      par_value = tmpt_value + noise  
+      if(length(zeta_index)!=0){
+        par_value[-zeta_index] = sapply(par_value[-zeta_index],function(x){return(max(x,0))})
+      par_value[-zeta_index] = sapply(par_value[-zeta_index],function(x){return(min(x,200))})
+      }
+      else{
+        par_value = sapply(par_value,function(x){return(max(x,0))})
+      par_value = sapply(par_value,function(x){return(min(x,200))})
+      }
+      par_value[c(npar-2,npar-1)] = sapply(par_value[c(npar-2,npar-1)],function(x){return(max(x,0))})
+      par_value[c(npar-2,npar-1)] = sapply(par_value[c(npar-2,npar-1)],function(x){return(min(x,5))})
+      
+      
+    }
+  OK = tryCatch(
+    { k = k+1
+      mle1 = optimParallel(par = par_value,
+      fn = LL1, gr = gn1, 
+      method = "L-BFGS-B",
+      lower = c(0,0,0,0,0,0), #6
+      upper = c(200,200,200,5,5,200), #6
+      control = list(fnscale = -1,#maxit = 1e4,
+                     # ndeps = c(1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3),
+                     #pgtol = pgtol,
+                     trace = 0),
+      # hessian = ifelse(type0=="CO",TRUE,FALSE),
+        # TRUE,
+                     #pgtol = 1e-3*npar),
+      parallel = list(cl=cl))
+if(k==2){message(paste("The MLE estimation of ",type0," with " ,N, " has started:",sep=""))
+  # message(mle1)
+  }
+if(is.na(mle1$convergence)) {FALSE}
+else{
+  if (mle1$convergence!= 0) {FALSE}
+else{
+    w_matrix = L_vec%*%Hessian_BHHH(para = as.numeric(mle1$par),type0 = type0)%*%t(L_vec)
+  if(det(w_matrix)==0){
+    flag = 0
+   
+  }else{
+    sd.hat = tryCatch(sqrt(diag(solve(-w_matrix))),error =function(e) {NA},warning =function(w){NA} )  #
+ 
+    flag = (!is.infinite(sum(sd.hat)))& (!is.na(sum(sd.hat)))
+    
+  }
+   
+  if(flag){
+    mle1_list_adj_v1[[i]] = mle1 
+    mle1_list_sd_v1[[i]] = sd.hat
+    est_mle1_adj_v1[-(npar+1),i] = mle1$par
+    est_mle1_adj_v1[(npar+1),i] =  mle1$value
+    
+    TRUE
+    }else{FALSE}
+    
+    }
+}
+
+    },
+  error=function(e){return(FALSE)})
+  if (OK){
+    if (type0=="CO"){
+      message(sprintf("%d%% candidates have been found.", round(i/try_times*100)))
+      if(i%%5==0){
+        saveRDS(est_mle1_adj_v1,paste(type0,"(",npar,")","_est_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_adj_v1, paste(type0,"(",npar,")","_object_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_sd_v1, paste(type0,"(",npar,")","_sd_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+      }}
+    else if (i%%3 ==0){
+      message(sprintf("%d%% candidates have been found.", round(i/try_times*100)))
+    }
+  
+    i = i+1 } else {next}
+  
+  if(k==250){
+    message("200 attempts have been made. quite the process now")
+  break}
+  }
+
+  
+  
+  saveRDS(est_mle1_adj_v1,paste(type0,"(",npar,")","_est_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_adj_v1, paste(type0,"(",npar,")","_object_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_sd_v1, paste(type0,"(",npar,")","_sd_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+
+  }
+#########################
+
+#######################
+result_mle_fun = function( type0, N, attrs, npar, RC, RT,try_times,L_vec,pgtol,version,df_type){
+    true_value = c(true_param$beta,
+                   # true_param$zeta[-nAlt],
+               true_param$lam1,
+               true_param$lam2,
+               true_param$b+true_param$A,
+               LL(para = 
+                      c(true_param$beta,
+                        # true_param$zeta[-nAlt]-true_param$zeta[nAlt],
+                        true_param$lam1,
+                        true_param$lam2,
+                        true_param$b),
+                 type = type0))
+  est_mle1_adj_v1 = readRDS(file = paste(type0,"(",npar,")","_est_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+  mle1_list_adj_v1 = readRDS(file = paste(type0,"(",npar,")","_object_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+  mle1_list_sd_v1 = readRDS(file =  paste(type0,"(",npar,")","_sd_",df_type,"_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+
+# tol_check = sapply(1:try_times,function(tryi){tmp = max(gn1(est_mle1_adj_v1[-(npar+1),tryi])/N);ifelse(tmp<=pgtol,1,Inf)})
+
+tol_check = rep(1,try_times)
+
+
+index = which.max(est_mle1_adj_v1[(npar+1),]*tol_check)
+crt_para = est_mle1_adj_v1[,index]
+if(length(zeta_index)!=0){
+  crt_para[zeta_index] = crt_para[zeta_index]+true_param$zeta[nAlt]
+}
+
+crt_mle = mle1_list_adj_v1[[index]]
+crt_mle_value = crt_para
+res_mle = data.frame(est =round(crt_para,3),se = c(round(mle1_list_sd_v1[[index]],3),"-"),gr =c( gn1(est_mle1_adj_v1[-(npar+1),index])/N,"-"),eigen_value = round(c(eigen(solve(-L_vec%*%Hessian_BHHH(para = est_mle1_adj_v1[-(npar+1),index],type0 = type0)%*%t(L_vec)))$value,max(eigen(solve(-L_vec%*%Hessian_BHHH(para = est_mle1_adj_v1[-(npar+1),index], type0 = type0)%*%t(L_vec)))$value)/min(eigen(solve(-L_vec%*%Hessian_BHHH(para = est_mle1_adj_v1[-(npar+1),index],type0 = type0)%*%t(L_vec)))$value)),3))
+return(res_mle)
+}
+
+```
+
+
+# 3. MLBA Estimation
+
+## 3.1 Bayesian estimation by De-MCMC
+```{r}
+sample_size = nrow(df)
+type_set = c("RTG")#"CRT","RTG","CO"
+version = "v5";df_type = "em2"
+K = 27; M = 2e4; burn_in = 7e3;mig_rate = 0.25; gam = 2.38/sqrt(2*npar);probset = 1:K  # 5e3; 2e3
+
+# CRT: 2e4;5e3;0.05
+# RTG: 5e4;2e4;0.15
+############################### parallel computing setup
+# ensure no stale sockets
+try(closeAllConnections(), TRUE); gc()
+numCores = min(K,detectCores()-2)
+# use enough cores to do parallel computation ,but not overload CPU
+cl = makeCluster(numCores) 
+# settings for parallel computing
+clusterEvalQ(cl=cl, {library("doParallel");library("parallel");library("foreach");library("Rcpp");library("RcppArmadillo");library("truncnorm");library("RcppNumerical")})
+
+clusterExport(cl = cl, c("file_route","true_param", "De_MCMC_unit", "poster", "Update_para", "K","gam", "npar",  "nAlt", "zeta_index" ,"nAttr", "para_fun", "migrate_step","probset"), envir = .GlobalEnv) 
+clusterEvalQ(cl=cl, sourceCpp(file_route))
+
+########################################
+m = 1
+for (type0 in type_set){
+
+    basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+
+tic(paste0(type0," for ",N, " observations simulation takes:",sep=""))
+    
+clusterExport(cl = cl, c("N", "RT", "RC", "type0","attrs"), envir = .GlobalEnv)
+
+# initual a fresh estimation
+chain_list = chain_intial(type0=type0, K = K,npar = npar);continuous = 0
+
+# resume an estimation with more iterations; then set continuous = M
+# chain_list = readRDS(file = paste0("chain_list_",type0,"_",df_type,"(",npar,")_",N,version,".rds",sep=""));continuous = 0
+
+chain_list = demcmc_fun(chain_list = chain_list, burn_in = burn_in,
+                        mig_rate = mig_rate, type0 = type0, K = K, N=N,
+                        npar = npar,RC = RC, RT = RT, attrs = attrs,probset = probset,M = M, version = version,continuous = continuous,df_type = df_type)
+toc()
+    
+    m = m+1
+  }
+
+
+stopCluster(cl=cl);doParallel::stopImplicitCluster()
+```
+
+
+```{r}
+sample_size = nrow(df)
+type_set = c("RTG")#,"CO","CRT",
+version = "v5";df_type = "em2"
+result_table = list()
+
+m=1
+for (type0 in type_set){
+    
+    basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+
+    result_table[[m]] = result_fun(type0 = type0,N = N, attrs = attrs,version = version,df_type = df_type)
+    print(paste(N, "of MLBA",type0,"result has been printed.",sep = " "))
+    m = m+1
+  }
+
+result_table[[1]];#result_table[[2]]
+# saveRDS(result_table,paste("Result_table_bayesian_",df_type,"_",version,".rds",sep=""))
+
+
+# version = "v3"
+# result_table = readRDS(paste("Result_table_bayesian_",df_type,"_",version,".rds",sep=""))
+
+
+```
+
+```{r}
+beep(sound=8)
+```
+
+## 3.2. MLE estimation
+```{r}
+sample_size = nrow(df)
+type_set = c("CRT","RTG") #,"CO"
+version = "v4";df_type = "em2"
+
+try_times = 30; max_index = nAttr+nAlt-1+2+1; L_vec = diag(0,nrow = npar,ncol = max_index); diag(L_vec[,-c((nAttr+1):(nAttr+nAlt-1))]) = 1;pgtol = 1e-3;
+
+#####################
+# ensure no stale sockets
+try(closeAllConnections(), TRUE); gc()
+# parallel estimation set up
+numCores = detectCores()-1
+# numCores = min(1+2*npar,detectCores()-2)  
+# set the number of processor cores
+cl = parallel::makeCluster(numCores) 
+parallel::clusterEvalQ(cl, {
+  # Optional: keep each worker single-threaded to avoid nested threading
+  Sys.setenv(OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1",
+             VECLIB_MAXIMUM_THREADS="1", NUMEXPR_NUM_THREADS="1")
+  if (requireNamespace("RhpcBLASctl", quietly = TRUE)) {
+    RhpcBLASctl::blas_set_num_threads(1)
+    RhpcBLASctl::omp_set_num_threads(1)
+  }
+  NULL
+})
+
+parallel::clusterEvalQ(cl = cl, {library(Rcpp); library(RcppArmadillo); library(truncnorm); library(RcppNumerical); library(numDeriv);})
+clusterExport(cl = cl, c("file_route","true_param", "npar",  "nAlt","zeta_index" ,"nAttr", "df", "LL","gn","poster","para_fun","L_vec","max_index"), envir = .GlobalEnv)
+clusterEvalQ(cl = cl, sourceCpp(file_route))
+message("The parallel setting has been done.")
+#####################
+  
+
+result_table = readRDS(file = paste("Result_table_bayesian_",df_type,"_",version,".rds",sep = "") )
+mle_res_table = list()
+
+m = 1
+for(type0 in type_set){
+
+    basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+
+tic(paste0(type0," for ",N, " observations simulation takes:",sep=""))
+  LL1 = function(para) LL(para = para, type0 = type0)
+gn1 = function(para) L_vec %*% gn(para = para, type0 = type0)
+  MAP_value = result_table[[m]]$MLE[-(npar+1)]
+  Mean_value =result_table[[m]]$est_mean[-(npar+1)]
+  Median_value =result_table[[m]]$est_median[-(npar+1)]
+  if(length(zeta_index)!=0){
+    MAP_value[zeta_index] = MAP_value[zeta_index]-true_param$zeta[nAlt]
+    Mean_value[zeta_index] = Mean_value[zeta_index]-true_param$zeta[nAlt]
+    Median_value[zeta_index] = Median_value[zeta_index]-true_param$zeta[nAlt]
+  }
+
+  parallel::clusterExport(cl = cl,
+  c("type0","N","attrs","RC","RT","MAP_value","LL1","gn1"),envir = environment())
+
+  mle_fun(type0 = type0, N = N, npar = npar, attrs = attrs, RT = RT, RC = RC, try_times = try_times, MAP_value = MAP_value,Mean_value = Mean_value,Median_value = Median_value, L_vec = L_vec, cl = cl, pgtol = pgtol,version = version,df_type = df_type)
+  toc()
+
+  m = m+1
+  }
+  
+  
+  
+
+
+stopCluster(cl=cl);doParallel::stopImplicitCluster()
+#103.56 sec for CRT; 
+```
+
+```{r}
+sample_size = nrow(df)
+type_set = c("CRT","RTG")#,"CO"
+try_times = 30; max_index = nAttr+nAlt-1+2+1;L_vec = diag(0,nrow = npar,ncol = max_index); diag(L_vec[,-c((nAttr+1):(nAttr+nAlt-1))]) = 1;pgtol = 1e-2;
+version = "v4"
+result_table = readRDS(file = paste("Result_table_bayesian_",df_type,"_",version,".rds",sep=""))
+mle_res_table = list()
+m=1
+
+for (type0 in type_set){
+    basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+    LL1 = function(para){
+    return(LL(para = para,type0 = type0))
+  }
+    gn1 = function(para){
+      temp = gn(para = para,type0 = type0)
+      res =  L_vec%*%temp 
+    return(res)
+    }
+
+mle_res_table[[m]] = result_mle_fun(type0 = type0, N = N, npar = npar, attrs = attrs, RT = RT, RC = RC, try_times = try_times, L_vec = L_vec, pgtol = pgtol,version = version,df_type = df_type)
+m = m+1
+  }
+
+
+saveRDS(mle_res_table,paste("Result_table_mle_",df_type,"_",version,".rds",sep=""))
+mle_res_table[[1]];mle_res_table[[2]]
+# 8311.36 sec
+```
+
+# 4. Accuracy Calculation
+```{r}
+acc= function(para,type0,RC,RT,attrs,N){
+  prob = NULL
+  for (j in 1:nAlt){
+  para_list = para_fun(para = para)
+  if(type0=="CRT"){
+    # temp = MLBA_rtknown_all(X = attrs,beta = para_list$beta, zeta = para_list$zeta, lam1 = para_list$lam1 ,lam2 = para_list$lam2,  b =para_list$b, A = para_list$A, s = para_list$s0, choice = rep(j,N), rt = RT)
+    temp = MLBA_rtg_all(X = attrs,beta = para_list$beta, zeta = para_list$zeta, lam1 = para_list$lam1 ,lam2 = para_list$lam2,  b =para_list$b, A = para_list$A, s = para_list$s0, choice = rep(j,N), rt = RT)
+    # temp = RCPPcdf_MLBA_CO_all(X = attrs,beta = para_list$beta, zeta = para_list$zeta, lam1 = para_list$lam1 ,lam2 = para_list$lam2,  b =para_list$b, A = para_list$A, s = para_list$s0, choice = rep(j,N))
+    
+  }else if(type0=="RTG"){
+    temp = MLBA_rtg_all(X = attrs,beta = para_list$beta, zeta = para_list$zeta, lam1 = para_list$lam1 ,lam2 = para_list$lam2,  b =para_list$b, A = para_list$A, s = para_list$s0, choice = rep(j,N), rt = RT)
+  }else{
+    temp = RCPPcdf_MLBA_CO_all(X = attrs,beta = para_list$beta, zeta = para_list$zeta, lam1 = para_list$lam1 ,lam2 = para_list$lam2,  b =para_list$b, A = para_list$A, s = para_list$s0, choice = rep(j,N))}
+  prob = cbind(prob,temp)
+  }
+  prob = t(apply(prob,1,function(x){x/sum(x)}))
+  tmp = matrix(0,ncol = nAlt, nrow = N)
+  for( i in 1:N){
+    tmp[i,RC[i]] = 1
+  }
+
+  brier = sum((tmp-prob)**2)/N 
+    
+  discard = which((prob[,1]==prob[,2])|(prob[,3]==prob[,2])|(prob[,1]==prob[,3]))
+  #discard = integer(0)
+  if(length(discard)==0) {chosen_est = apply(prob, 1, which.max)
+
+  acc = sum(chosen_est==RC)/N*100}
+  else{
+    chosen_est = rep(-1,dim(prob)[1])
+    chosen_est[-discard] = apply(prob[-discard,], 1, which.max)
+
+    acc = sum(chosen_est[-discard]==RC[-discard])/(N-length(discard))*100
+  }
+  
+  
+  
+  
+  
+  return(list(acc = round(acc,1),brier = round(brier,3),dis = length(discard)))
+
+}
+```
+
+```{r}
+# acc table generation
+sample_size = nrow(df)
+type_set = c("CRT","RTG")#,"CO"
+version = "v4";df_type = "em2"
+result_table = readRDS(file = paste("Result_table_bayesian_",df_type,"_",version,".rds",sep=""))
+result_mle_table = readRDS(file = paste("Result_table_mle_",df_type,"_",version,".rds",sep=""))
+
+
+
+# training set
+basic_Info = df_info(df = df[1:sample_size,])
+N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+m=1
+# acc
+mean_b_crt = result_table[[(m-1)*length(type_set)+1]]$est_mean[-(npar+1)]
+mle_crt = result_mle_table[[(m-1)*length(type_set)+1]]$est[-(npar+1)]
+mean_b_rtg = result_table[[(m-1)*length(type_set)+2]]$est_mean[-(npar+1)]
+mle_rtg = result_mle_table[[(m-1)*length(type_set)+2]]$est[-(npar+1)]
+
+if(length(zeta_index)!=0){
+  
+mean_b_crt[zeta_index] = mean_b_crt[zeta_index]-true_param$zeta[nAlt]
+mle_crt[zeta_index] = mle_crt[zeta_index]-true_param$zeta[nAlt]
+
+mean_b_rtg[zeta_index] = mean_b_rtg[zeta_index]-true_param$zeta[nAlt]
+mle_rtg[zeta_index] = mle_rtg[zeta_index]-true_param$zeta[nAlt]
+
+# mean_b_co = result_table[[m*length(type_set)]]$est_mean[-(npar+1)]
+# mean_b_co[zeta_index] = mean_b_co[zeta_index]-true_param$zeta[nAlt]
+# mle_co = result_mle_table[[m*length(type_set)]]$est[-(npar+1)]
+# mle_co[zeta_index] = mle_co[zeta_index]-true_param$zeta[nAlt]
+}
+
+
+acc_table = data.frame(size = rep(sample_size,length(type_set)),
+                                    models = type_set,
+                                    acc_is_b = c(acc(para = mean_b_crt, type0 = "CRT", N = N, attrs = attrs, RT = RT, RC = RC)$acc,
+                                                 acc(para = mean_b_rtg, type0 = "RTG", N = N, attrs = attrs, RT = RT, RC = RC)$acc),
+                                    acc_is_mle = c(acc(para = mle_crt, type0 = "CRT", N = N, attrs = attrs, RT = RT, RC = RC)$acc,acc(para = mle_rtg, type0 = "RTG", N = N, attrs = attrs, RT = RT, RC = RC)$acc)
+                       )
+
+# brier
+brier_table  = data.frame(size = rep(sample_size,length(type_set)),
+                                      models = type_set,
+                                      brier_is_b = c(acc(para = mean_b_crt, type0 = "CRT", N = N, attrs = attrs, RT = RT, RC = RC)$brier,acc(para = mean_b_rtg, type0 = "RTG", N = N, attrs = attrs, RT = RT, RC = RC)$brier),
+                                    brier_is_mle = c(acc(para = mle_crt, type0 = "CRT", N = N, attrs = attrs, RT = RT, RC = RC)$brier,acc(para = mle_rtg, type0 = "RTG", N = N, attrs = attrs, RT = RT, RC = RC)$brier)
+                          )  
+    
+
+
+saveRDS(acc_table,paste("acc_table_",df_type,"_",version,".rds",sep=""))
+saveRDS(brier_table,paste("brier_table_",df_type,"_",version,".rds",sep=""))
+
+
+print(acc_table);print(brier_table)
+```
+
+
+
+# 6. Plots
+## 6.1 MLE and Beyesian Diagnosis Plots
+
+### 6.1.1 Beyesian Diagnosis plots
+```{r}
+# trace plot to check whether the rest of chains are stable, sample size = 1e3
+library(ggpubr)
+library(ggplot2)
+diagnosis_Bayesian_fun = function(type0, N, attrs,version,df_type){
+  set.seed(2025)
+  path = paste0("chain_list_",type0,"_",df_type,"(",npar,")_",N,version,".rds",sep="")
+  chain_all = readRDS(file = path)
+  npar = dim(chain_all[[1]])[2]-1
+  K = dim(chain_all[[1]])[1]
+  M = length(chain_all)-1
+  burn_in = round(M/2,0)
+  
+  
+  thin = sort(sample((burn_in*1.5):(M),300,replace = F)) #RTG 200
+
+  # DE_MLE
+  est_MLE = rbind.fill.matrix(chain_all)
+  MLE_index = which.max(est_MLE[,(npar+1)])
+  MLE_value = est_MLE[MLE_index,]
+  if(length(zeta_index)!=0){
+    MLE_value[zeta_index] = MLE_value[zeta_index]+true_param$zeta[nAlt]
+  }
+  
+  #
+  Supper_chain = array(dim = c(K,length(thin),npar+1))
+  for(i in 1:K){
+  Supper_chain[i,,] = t(sapply(chain_all[thin], function(x){return(x[i,])}))
+  }
+  Supper_chain_sd = sapply(chain_all, function(x){apply(x,2,sd)})
+
+  post = matrix(nrow = npar+1,ncol = K*length(thin))
+  post_sd = rep(NULL,npar+1)
+  post_mcerror = rep(NULL,npar+1)
+  post_mse = rep(NULL,npar+1)
+  for (j in 1:(npar+1)){
+    post[j,] = matrix(Supper_chain[,,j],nrow = 1)
+    post_sd[j] = sd(post[j,])
+  }
+  if(length(zeta_index)!=0){
+  Supper_chain[,,zeta_index] = Supper_chain[,,zeta_index]+true_param$zeta[3]}
+  # post_median = apply(post , 1, median)
+  # post_median[npar+1] = poster(para_list = list(para = post_median[-(npar+1)],type = type0))
+  
+  name1 = c(bquote(beta[TC]~", "~.(type0)), 
+            bquote(beta[TT]~", "~.(type0)), 
+            bquote(beta[CL]~", "~.(type0)), 
+            #bquote(zeta[Ride-hailing]~", "~.(type0)),
+            #bquote(zeta[Metro]~", "~.(type0)),
+            bquote(lambda[1]~", "~.(type0)),
+            bquote(lambda[2]~", "~.(type0)),
+            bquote(b~", "~.(type0)),bquote("Posterior"~", "~.(type0)))
+  
+  plt = list()
+  plt$sdplt = list()
+  plt$traceplt = list()
+  for( i in 1:(npar+1)){
+    plt_df = data.frame(value = matrix(t(Supper_chain[,,i]),ncol = 1),chain = factor(matrix(t(replicate(length(thin),1:K)),ncol = 1)),iter = matrix(replicate(K,1:length(thin)),ncol = 1))
+    plt$traceplt[[i]] = ggplot()+ 
+      geom_line(data =plt_df, aes(x=iter, y=value, colour = chain),alpha = 0.5)+ 
+      guides(color = "none")+
+      theme_classic()+
+      labs(subtitle = name1[[i]])+
+      geom_hline(yintercept = MLE_value[i],color = "red", linewidth = 1.5, alpha = 0.7, linetype = 2)
+    plt$sdplt[[i]] = ggplot()+
+      geom_line(data =data.frame(sd = Supper_chain_sd[i,],iter = 1:length(Supper_chain_sd[i,])), aes(x=iter, y=sd),alpha = 0.5)+
+      theme_classic()+
+      labs(subtitle =name1[[i]])
+    
+  }
+  
+  plt$traceplt[[npar+2]] = ggarrange(plotlist = plt$traceplt,nrow = 3,ncol = 3)
+  plt$sdplt[[npar+2]] = ggarrange(plotlist = plt$sdplt,nrow = 3,ncol = 3)
+  
+  return(plt)
+}
+
+
+
+```
+
+```{r}
+sample_size = nrow(df)
+type_set = c("CRT","RTG")#,"CO"
+version = "v4";df_type = "em2"
+plt_b = list()
+
+m=1
+for (type0 in type_set){
+basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+plt_b[[m]] = diagnosis_Bayesian_fun(type0=type0, N=N, attrs=attrs,version=version,df_type = df_type)
+    m = m +1
+    }
+  
+
+saveRDS(plt_b,file = paste("Diagnosis/Diagnosis_plt_beyesian_",df_type,"_",version,".rds",sep=""))
+
+```
+
+```{r}
+m= 1;plt_b[[m]]$sdplt[[npar+2]];plt_b[[m]]$traceplt[[npar+2]]
+############## save plt pdf
+
+sample_size = nrow(df)
+type_set = c("CRT","RTG")  #,"CO"
+version = "v4";df_type = "em2"
+m=1
+
+for (type0 in type_set){
+    ggsave(paste("Diagnosis/Diagnosis_sim_trace_",df_type,"_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+         plot   = plt_b[[m]]$traceplt[[npar+2]],
+         device = cairo_pdf,  # embeds fonts better; optional
+         width  = 8.27, height = 5.83, units = "in")
+
+    ggsave(paste("Diagnosis/Diagnosis_sim_sd_",df_type,"_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+         plot   = plt_b[[m]]$sdplt[[npar+2]],
+         device = cairo_pdf,  # embeds fonts better; optional
+         width  = 8.27, height = 5.83, units = "in")
+
+   m = m+1
+  }
+
+
+
+```
+
+
+### 5.1.2 MLE checkplots 
+
+
+
+```{r}
+
+diagnosis_MLE_fun = function(type0, N, attrs,version,res_table){
+
+name1 = c(bquote(beta[TC]~", "~.(type0)~"( "~.(sample_size)~")"), 
+            bquote(beta[TT]~", "~.(type0)~"( "~.(sample_size)~")"), 
+            bquote(beta[CL]~", "~.(type0)~"( "~.(sample_size)~")"), 
+            # bquote(zeta[Ride-hailing]~", "~.(type0)~"( "~.(sample_size)~")"),
+            # bquote(zeta[Metro]~", "~.(type0)~"( "~.(sample_size)~")"),
+            bquote(lambda[1]~", "~.(type0)~"( "~.(sample_size)~")"),
+            bquote(lambda[2]~", "~.(type0)~"( "~.(sample_size)~")"),
+            bquote(b~", "~.(type0)~"( "~.(sample_size)~")"))
+
+
+low = res_table$est[-(npar+1)]-as.numeric(res_table$se[-(npar+1)])*1.96-1
+upper = res_table$est[-(npar+1)]+as.numeric(res_table$se[-(npar+1)])*1.96+1
+
+if(length(zeta_index)!=0){
+  low[-(zeta_index)] = sapply(low[-(zeta_index)],function(x){max(0,x)})
+low[-(zeta_index)] = sapply(low[-(zeta_index)],function(x){min(200,x)})
+
+upper[-(zeta_index)] = sapply(upper[-(zeta_index)],function(x){max(0,x)})
+upper[-(zeta_index)] = sapply(upper[-(zeta_index)],function(x){min(200,x)})
+}
+low = sapply(low,function(x){max(0,x)})
+low = sapply(low,function(x){min(200,x)})
+
+upper = sapply(upper,function(x){max(0,x)})
+upper = sapply(upper,function(x){min(200,x)})
+
+low[c(npar-2,npar-1)] = sapply(low[c(npar-2,npar-1)],function(x){min(5,x)})
+upper[c(npar-2,npar-1)] = sapply(upper[c(npar-2,npar-1)],function(x){min(5,x)})
+
+plot = list()
+for(i in 1:npar){
+value_seq = sort(c(res_table$est[i],seq(from = low[i], to =upper[i], length.out =50)))
+#MLE_value
+LLK_seq = sapply(value_seq, function(x) {tmp = res_table$est[-(npar+1)];if(length(zeta_index)!=0){tmp[zeta_index] = tmp[zeta_index]-true_param$zeta[nAlt];}
+tmp[i] =x; return(LL(para = tmp, type0 = type0))})
+plot[[i]] = ggplot(data = data.frame(value = value_seq,llk = LLK_seq))+geom_line(aes(x = value, y = llk))+labs(title = name1[[i]])+
+  geom_vline(aes_(xintercept =res_table$est[i],color = "mle"))+
+  scale_color_discrete(type = c("mle" = "blue"))
+}
+
+plot[[npar+1]] = ggarrange(plotlist = plot,nrow = 2,ncol = 3,common.legend = T)
+
+return(plot)
+}
+
+```
+
+```{r}
+mle_res_table = readRDS(paste("Result_table_mle_",df_type,"_",version,".rds",sep=""))
+sample_size =nrow(df)
+type_set = c("CRT","RTG") #,"CO"
+version = "v4";type_df = "em2"
+plt_mle = list()
+
+m=1
+
+for (type0 in type_set){
+basic_Info = df_info(df = df[1:sample_size,])
+    N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
+
+plt_mle[[m]] = diagnosis_MLE_fun(type0 = type0, N = N, attrs = attrs,version = version,res_table =mle_res_table[[m]])
+    m = m +1
+    }
+  
+
+
+saveRDS(plt_mle,file = paste("Diagnosis/Diagnosis_plt_mle_",df_type,"_",version,".rds",sep=""))
+
+
+```
+
+```{r}
+# m=1;plt_mle[[m]][[npar+1]]
+
+############## save plt pdf
+
+sample_size = nrow(df)
+type_set = c("CRT","RTG")  #,"CO"
+version = "v4";df_type = "em2"
+m=1
+
+for (type0 in type_set){
+    ggsave(paste("Diagnosis/Diagnosis_sim_MLE_",df_type,"_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+         plot   = plt_mle[[m]][[npar+1]],
+         device = cairo_pdf,  # embeds fonts better; optional
+         width  = 8.27, height = 5.83, units = "in")
+   m = m+1
+  }
+
+
+```
+
+
+
+
+
+# 6. RUM check
+```{r}
+library(gmnl)
+library(mlogit)
+library(readr)
+```
+
+
+```{r}
+choice = function(c){
+  #c is the index of chosen alternative
+  
+  tmp = matrix(0,nrow = nAlt, ncol = length(c))
+  for( i in 1:N){
+    tmp[c[i],i] = 1
+  }
+  return(matrix(tmp,ncol = 1))
+}
+
+
+df_long = data.frame(attrs,Alt = rep(1:3,N),chosen = choice(df$rc))
+colnames(df_long) = c("(neg)TC","(neg)TT","CL","Alt","chosen")
+head(df_long)
+
+```
+
+```{r}
+df_mnl = mlogit.data(df_long, choice = "chosen", shape = "long", alt.levels = c("3","1","2"),alt.var = "Alt")
+
+m1.t = gmnl(chosen~`(neg)TC`+`(neg)TT`+CL|0|0, data = df_mnl)
+
+summary(m1.t); BIC(m1.t)
+# -684.47
+# -623.6
+```
+
+```{r}
+MNL_prob = m1.t$prob.alt
+tmp = MNL_prob[,1]
+MNL_prob[,1:2] = MNL_prob[,2:3]
+MNL_prob[,3] = tmp
+MNL_c = apply(MNL_prob,1,which.max)
+
+acc = sum(MNL_c==df$rc)/length(df$rc)*100
+
+tmp = matrix(0,ncol = nAlt, nrow = length(df$rc))
+for( i in 1:N){tmp[i,df$rc[i]] = 1}
+brier = mean((tmp-MNL_prob)^2)*nAlt
+
+c(acc,brier)  # 71.1643090  0.4189773;
+```
+
+
+
+
