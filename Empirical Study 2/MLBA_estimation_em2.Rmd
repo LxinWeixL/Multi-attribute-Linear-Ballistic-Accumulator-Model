@@ -1,5 +1,5 @@
 ---
-title: "MLBARCRT EVs semi-simulated dataset under Hancock model"
+title: "MLBA estimation on travel mode dataset (empirical study 2)"
 author: "Xinwei Li\n li.xinwei@u.nus.edu"
 date: "`r Sys.Date()`"
 output:
@@ -31,10 +31,10 @@ library(ggplot2)
 library(bayestestR)
 library(coda)
 library(beepr)
-file_route = "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\MLBA.cpp"
+file_route = "...\\Empricial Study 2\\MLBA.cpp"
 
-df = read.csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/datasets/ET_comparison-main/Compiled_data/TRANSPORT/data_merged_monitor_exp1_WL.csv")
-df2 = read.csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/datasets/ET_comparison-main/Compiled_data/TRANSPORT/data_merged_laptop_exp1_WL.csv")
+df = read.csv("data_merged_monitor_exp1_WL.csv")
+df2 = read.csv("data_merged_laptop_exp1_WL.csv")
 df = rbind(df,df2)
 head(df)
 
@@ -1209,6 +1209,7 @@ brier = mean((tmp-MNL_prob)^2)*nAlt
 
 c(acc,brier)  # 71.1643090  0.4189773;
 ```
+
 
 
 
