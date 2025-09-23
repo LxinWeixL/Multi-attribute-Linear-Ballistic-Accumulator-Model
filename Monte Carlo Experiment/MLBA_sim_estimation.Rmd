@@ -31,11 +31,11 @@ library(ggplot2)
 library(bayestestR)
 library(coda)
 library(beepr)
-file_route = "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\MLBA.cpp"
-df = read_csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/simulations/MLBARCT_data_0801_800.csv")
+file_route = "...\\Monte Carlo Experiment\\MLBA.cpp" # your own path
+df = read_csv(...\\Monte Carlo Experiment\\MLBARCT_data_0801_800.csv")
 
 
-df_test = read_csv("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/simulations/MLBARCT_data_0801_800(test).csv")
+df_test = read_csv("...\\Monte Carlo Experiment\\MLBARCT_data_0801_800(test).csv")
 
 sourceCpp(file = file_route)
 ```
@@ -235,16 +235,16 @@ chain_list[[j+1]] = migrate_step(current_chain_list = chain_list[[j+1]])}
     if(j%%1e3==0) message(paste("Simulation progress:" ,round(j/(M+continuous)*100,2) ,"% has finished.",sep = " "))
   }
   
-  if(j%%1000==0) {saveRDS(chain_list, file = paste0("chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep=""))}
+  if(j%%1000==0) {saveRDS(chain_list, file = paste0("estimation results and plots/chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep=""))}
   } 
   
-return(list(chain_list=chain_list,path = paste0("chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")))
+return(list(chain_list=chain_list,path = paste0("estimation results and plots/chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")))
 }
 ########################################
 # result generation
 result_fun = function(type0, N, attrs,version){
   set.seed(2025)
-  path = paste0("chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")
+  path = paste0("estimation results and plots/chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")
   chain_all = readRDS(file = path)
   npar = dim(chain_all[[1]])[2]-1
   K = dim(chain_all[[1]])[1]
@@ -322,9 +322,9 @@ result_fun = function(type0, N, attrs,version){
                         #bias = sapply(round((est_MLE[MLE_index,]-true_value)/true_value*100,2), function(x){paste(x,"%")}))
   post_app = rep(NULL,npar+1)
   rownames(result4) = name
-  write.csv(post,paste("Post_sim_",N,"_",type0,"Aug_",version, ".csv",sep=""))
+  write.csv(post,paste("estimation results and plots/Post_sim_",N,"_",type0,"Aug_",version, ".csv",sep=""))
   return(result4)
-  write.csv(result4,paste0(type0,"_post_",N,version,".rds",".csv",step = ""))
+  write.csv(result4,paste0("estimation results and plots/",type0,"_post_",N,version,".rds",".csv",step = ""))
 }
 
 
@@ -493,9 +493,9 @@ else{
     if (type0=="CO"){
       message(sprintf("%d%% candidates have been found.", round(i/try_times*100)))
       if(i%%5==0){
-        saveRDS(est_mle1_adj_v1,paste(type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
-  saveRDS(mle1_list_adj_v1, paste(type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
-  saveRDS(mle1_list_sd_v1, paste(type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+        saveRDS(est_mle1_adj_v1,paste("estimation results and plots/",type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_adj_v1, paste("estimation results and plots/",type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_sd_v1, paste("estimation results and plots/",type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
       }}
     else if (i%%3 ==0){
       message(sprintf("%d%% candidates have been found.", round(i/try_times*100)))
@@ -510,9 +510,9 @@ else{
 
   
   
-  saveRDS(est_mle1_adj_v1,paste(type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
-  saveRDS(mle1_list_adj_v1, paste(type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
-  saveRDS(mle1_list_sd_v1, paste(type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(est_mle1_adj_v1,paste("estimation results and plots/",type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_adj_v1, paste("estimation results and plots/",type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
+  saveRDS(mle1_list_sd_v1, paste("estimation results and plots/",type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep=""))
 
   }
 #########################
@@ -531,9 +531,9 @@ result_mle_fun = function( type0, N, attrs, npar, RC, RT,try_times,L_vec,pgtol,v
                         true_param$lam2),
                         #true_param$b),
                  type = type0))
-  est_mle1_adj_v1 = readRDS(file = paste(type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
-  mle1_list_adj_v1 = readRDS(file = paste(type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
-  mle1_list_sd_v1 = readRDS(file =  paste(type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+  est_mle1_adj_v1 = readRDS(file = paste("estimation results and plots/",type0,"(",npar,")","_est_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+  mle1_list_adj_v1 = readRDS(file = paste("estimation results and plots/",type0,"(",npar,")","_object_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
+  mle1_list_sd_v1 = readRDS(file =  paste("estimation results and plots/",type0,"(",npar,")","_sd_sim_MLE",try_times,"Aug_",N,version,".rds",sep = ""))
 
 # tol_check = sapply(1:try_times,function(tryi){tmp = max(gn1(est_mle1_adj_v1[-(npar+1),tryi])/N);ifelse(tmp<=pgtol,1,Inf)})
 
@@ -626,7 +626,7 @@ for(sample_size in sample_size_set){
   }}
 
 
-saveRDS(result_table,paste("Result_table_bayesian_",version,".rds",sep=""))
+saveRDS(result_table,paste("estimation results and plots/Result_table_bayesian_",version,".rds",sep=""))
 
 ```
 
@@ -666,7 +666,7 @@ message("The parallel setting has been done.")
 #####################
   
 
-result_table = readRDS(file = paste("Result_table_bayesian_",version,".rds",sep = "") )
+result_table = readRDS(file = paste("estimation results and plots/Result_table_bayesian_",version,".rds",sep = "") )
 mle_res_table = list()
 
 m = 1
@@ -731,7 +731,7 @@ m = m+1
   }}
 
 
-saveRDS(mle_res_table,paste("Result_table_mle_",version,".rds",sep=""))
+saveRDS(mle_res_table,paste("estimation results and plots/Result_table_mle_",version,".rds",sep=""))
 ```
 
 ## 4. Accuracy Calculation
@@ -783,8 +783,8 @@ acc= function(para,type0,RC,RT,attrs,N){
 sample_size_set = c(50,80,100,200,400,600,800)
 type_set = c("CRT","RTG","CO")
 version = "v2"
-result_table = readRDS(file = paste("Result_table_bayesian_",version,".rds",sep=""))
-result_mle_table = readRDS(file = paste("Result_table_mle_",version,".rds",sep=""))
+result_table = readRDS(file = paste("estimation results and plots/Result_table_bayesian_",version,".rds",sep=""))
+result_mle_table = readRDS(file = paste("estimation results and plots/Result_table_mle_",version,".rds",sep=""))
 
 acc_res_table = list()
 m=1
@@ -837,8 +837,8 @@ acc_table = rbindlist(acc_res_table$acc)
 brier_table = rbindlist(acc_res_table$brier)
 
 version = "v3"
-saveRDS(acc_table,paste("acc_table_",version,".rds",sep=""))
-saveRDS(brier_table,paste("brier_table_",version,".rds",sep=""))
+saveRDS(acc_table,paste("estimation results and plots/acc_table_",version,".rds",sep=""))
+saveRDS(brier_table,paste("estimation results and plots/brier_table_",version,".rds",sep=""))
 
 
 print(acc_table);print(brier_table)
@@ -859,11 +859,11 @@ for(sample_size in sample_size_set){
     basic_Info = df_info(df = df[1:sample_size,])
     N = basic_Info$N;attrs = basic_Info$attrs; RT = basic_Info$RT; RC = basic_Info$RC;
  
-  post_crt = read_csv(file = paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/simulations/Post_sim_",N,"_","CRT","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
+  post_crt = read_csv(file = paste("estimation results and plots/Post_sim_",N,"_","CRT","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
 
-  post_rtg = read_csv(file = paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/simulations/Post_sim_",N,"_","RTG","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
+  post_rtg = read_csv(file = paste("estimation results and plots/Post_sim_",N,"_","RTG","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
 
-  post_co = read_csv(file = paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/simulations/Post_sim_",N,"_","CO","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
+  post_co = read_csv(file = paste("estimation results and plots/Post_sim_",N,"_","CO","Aug_",version,".csv",sep = ""),show_col_types = FALSE)
 
 name1 = c(bquote(beta[A]~", "~.(sample_size)), bquote(beta[B]~", "~.(sample_size)), bquote(beta[C]~", "~.(sample_size)), bquote(zeta[1]~", "~.(sample_size)),bquote(zeta[2]~", "~.(sample_size)),bquote(lambda[1]~", "~.(sample_size)),bquote(lambda[2]~", "~.(sample_size)),"LLK")
 post_crt = t(post_crt[,-1])
@@ -881,7 +881,7 @@ m = m+1
 
 }
 
-saveRDS(post_list,file = paste("df_violin_sim_3type_Aug",version,".rds",sep = ""))
+saveRDS(post_list,file = paste("estimation results and plots/df_violin_sim_3type_Aug",version,".rds",sep = ""))
 
 ```
 
@@ -910,7 +910,7 @@ MLE_df$Up = sapply(1:nrow(MLE_df),function(i){
     return(min(5,MLE_df$Up[i]))}else{return(MLE_df$Up[i])}})
 head(MLE_df)
 
-saveRDS(MLE_df,file = paste("df_violin_sim_3type_mle_Aug_",version,".rds",sep=""))
+saveRDS(MLE_df,file = paste("estimation results and plots/df_violin_sim_3type_mle_Aug_",version,".rds",sep=""))
 ```
 
 
@@ -987,14 +987,14 @@ m = m+1
 }
 
 
-saveRDS(test,paste("Plt_violin_sim_Aug_",version,".rds",sep=""))
+saveRDS(test,paste("estimation results and plots/Plt_violin_sim_Aug_",version,".rds",sep=""))
 ```
 
 ```{r}
 
 for (l in 1:npar){
 plt_tmp = ggarrange(plotlist = list(test[[1]][[l]],test[[2]][[l]],test[[3]][[l]],test[[4]][[l]],test[[5]][[l]],test[[6]][[l]],test[[7]][[l]],test[[1]][[npar+1]]),ncol = 4, nrow = 2,common.legend = T,legend = "none")
-ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/R&R/Full_violin",name[l],"_",version,".pdf",sep=""),
+ggsave(paste("estimation results and plots/Full_violin",name[l],"_",version,".pdf",sep=""),
          plot   = plt_tmp ,
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 6.5, units = "in")
@@ -1008,7 +1008,7 @@ ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/Ne
 ```{r}
 for (m in 1:length(sample_size_set)){
 plt_tmp = ggarrange(plotlist = list(test[[m]][[1]],test[[m]][[2]],test[[m]][[3]],test[[m]][[4]],test[[m]][[5]],test[[m]][[6]],test[[m]][[7]],test[[m]][[npar+1]]),ncol = 4, nrow = 2,common.legend = T,legend = "none")
-ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/R&R/Full_violin(",sample_size_set[m],")_",version,".pdf",sep=""),
+ggsave(paste("estimation results and plots/Full_violin(",sample_size_set[m],")_",version,".pdf",sep=""),
          plot   = plt_tmp ,
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 6.5, units = "in")
@@ -1021,7 +1021,7 @@ ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/Ne
 
 ```{r}
 version = "v2"
-result_table = readRDS(file = paste("Result_table_bayesian_",version,".rds",sep="") )
+result_table = readRDS(file = paste("estimation results and plots/Result_table_bayesian_",version,".rds",sep="") )
 
 sample_size_set = c(50,80,100,200,400,600,800)
 type_set = c("CRT","RTG","CO")
@@ -1051,7 +1051,7 @@ for(sample_size in sample_size_set){
 MSE_df  = rbindlist(MSE_df_tmp)
 
 head(MSE_df)
-saveRDS(MSE_df,paste("df_sim_3type_mse_Aug_",version,".rds",sep=""))
+saveRDS(MSE_df,paste("estimation results and plots/df_sim_3type_mse_Aug_",version,".rds",sep=""))
 
 ```
 
@@ -1116,15 +1116,15 @@ ggarrange(plotlist = list(test[[npar+2]],test[[npar+5]]), ncol = 1, nrow = 2,com
 ```{r}
 
 
-# saveRDS(test,file = paste("Plt_mse_sim_200_type3_",version,".rds",sep=""))
+# saveRDS(test,file = paste("estimation results and plots/Plt_mse_sim_200_type3_",version,".rds",sep=""))
 ```
 
 ## 5.2.2 Violin + MSE plots
 
 ```{r}
 version = "v2"
-violin_plt = readRDS(paste("Plt_violin_sim_Aug_",version,".rds",sep=""))
-MSE_plt = readRDS(paste("Plt_mse_sim_200_type3_",version,".rds",sep=""))
+violin_plt = readRDS(paste("estimation results and plots/Plt_violin_sim_Aug_",version,".rds",sep=""))
+MSE_plt = readRDS(paste("estimation results and plots/Plt_mse_sim_200_type3_",version,".rds",sep=""))
 
 
 for (l in 1:npar){
@@ -1141,11 +1141,11 @@ for (l in 1:npar){
   
    plt_temp[[4]] = ggarrange(plotlist = list(violin_plt[[4]][[l]],violin_plt[[5]][[l]],violin_plt[[6]][[l]],violin_plt[[7]][[l]]),nrow = 1,ncol = 4, common.legend = T)
   
-  # ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/R&R/MSE_violin",name[l],"_",version,".pdf",sep=""),
+  # ggsave(paste("estimation results and plots/MSE_violin",name[l],"_",version,".pdf",sep=""),
   #        plot   = plt_temp[[3]] ,
   #        device = cairo_pdf,  # embeds fonts better; optional
   #        width  = 8.27, height = 5.83, units = "in")
-  ggsave(paste("D:/onedrive/OneDrive - National University of Singapore/Desktop/New folder/MLBA_CRT/RT_paper/R&R/violin",name[l],"_",version,".pdf",sep=""),
+  ggsave(paste("estimation results and plots/violin",name[l],"_",version,".pdf",sep=""),
          plot   = plt_temp[[4]] ,
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 3.6, units = "in")
@@ -1182,8 +1182,8 @@ brier_df_plt = data.frame(size =rep(brier_table$size,2*4) ,
                       models = rep(brier_table$models,2*4),
                       acc = c(brier_table$brier_is_b,brier_table$brier_is_mle,brier_table$brier_os_b,brier_table$brier_os_mle),type = c(rep("in-sample post. mean",length(type_set)),rep("in-sample mle est.",length(type_set)),rep("out-of-sample post. mean",length(type_set)),rep("out-of-sample mle est.",length(type_set))))
 
-saveRDS(acc_df,paste("acc_df_",version,".rds",sep=""))
-saveRDS(brier_df,paste("brier_df_",version,".rds",sep=""))
+saveRDS(acc_df,paste("estimation results and plots/acc_df_",version,".rds",sep=""))
+saveRDS(brier_df,paste("estimation results and plots/brier_df_",version,".rds",sep=""))
 
 ```
 
@@ -1233,7 +1233,7 @@ plt[[3]] = ggplot()+
 
 #ggarrange(plotlist = list(plt[[1]],plt[[2]]), ncol = 2, nrow = 1,common.legend = T)
 
-# saveRDS(plt[[2]],file = paste("Plt_acc_",version,".rds",sep=""))
+# saveRDS(plt[[2]],file = paste("estimation results and plots/Plt_acc_",version,".rds",sep=""))
 
 ```
 
@@ -1244,7 +1244,7 @@ plt[[3]] = ggplot()+
 # trace plot to check whether the rest of chains are stable, sample size = 1e3
 diagnosis_Bayesian_fun = function(type0, N, attrs,version){
   set.seed(2025)
-  path = paste0("chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")
+  path = paste0("estimation results and plots/chain_list_",type0,"_sim","(",npar,")_",N,version,".rds",sep="")
   chain_all = readRDS(file = path)
   npar = dim(chain_all[[1]])[2]-1
   K = dim(chain_all[[1]])[1]
@@ -1343,7 +1343,7 @@ plt_b[[m]] = diagnosis_Bayesian_fun(type0=type0, N=N, attrs=attrs,version=versio
     }
   
 }
-# saveRDS(plt_b,file = paste("Diagnosis/Diagnosis_plt_beyesian_",version,".rds",sep=""))
+# saveRDS(plt_b,file = paste("diagnosis results and plots/Diagnosis_plt_beyesian_",version,".rds",sep=""))
 
 ```
 
@@ -1357,12 +1357,12 @@ version = "v2"
 m=1
 for(sample_size in sample_size_set){
   for (type0 in type_set){
-    ggsave(paste("Diagnosis/Diagnosis_sim_trace_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+    ggsave(paste("diagnosis results and plots/Diagnosis_sim_trace_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
          plot   = plt_b[[m]]$traceplt[[npar+2]],
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 5.83, units = "in")
 
-    ggsave(paste("Diagnosis/Diagnosis_sim_sd_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+    ggsave(paste("diagnosis results and plots/Diagnosis_sim_sd_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
          plot   = plt_b[[m]]$sdplt[[npar+2]],
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 5.83, units = "in")
@@ -1426,7 +1426,7 @@ return(plot)
 ```
 
 ```{r}
-mle_res_table = readRDS(paste("Result_table_mle_",version,".rds",sep=""))
+mle_res_table = readRDS(paste("estimation results and plots/Result_table_mle_",version,".rds",sep=""))
 sample_size_set = c(50,80,100,200,400,600,800)
 type_set = c("CRT","RTG","CO")
 version = "v2"
@@ -1444,7 +1444,7 @@ plt_mle[[m]] = diagnosis_MLE_fun(type0 = type0, N = N, attrs = attrs,version = v
   
 }
 
-# saveRDS(plt_mle,file = paste("Diagnosis/Diagnosis_plt_mle_",version,".rds",sep=""))
+# saveRDS(plt_mle,file = paste("diagnosis results and plots/Diagnosis_plt_mle_",version,".rds",sep=""))
 
 
 ```
@@ -1460,7 +1460,7 @@ version = "v2"
 m=1
 for(sample_size in sample_size_set){
   for (type0 in type_set){
-    ggsave(paste("Diagnosis/Diagnosis_sim_MLE_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
+    ggsave(paste("diagnosis results and plots/Diagnosis_sim_MLE_",type0,"_","(",sample_size,")" ,"_",version,".pdf",sep=""),
          plot   = plt_mle[[m]][[npar+1]],
          device = cairo_pdf,  # embeds fonts better; optional
          width  = 8.27, height = 5.83, units = "in")
@@ -1469,4 +1469,5 @@ for(sample_size in sample_size_set){
 
   }
 ```
+
 
