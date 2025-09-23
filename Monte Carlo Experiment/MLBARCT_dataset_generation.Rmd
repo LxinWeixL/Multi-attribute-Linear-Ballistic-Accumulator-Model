@@ -1,0 +1,209 @@
+---
+title: "MLBARCRT dataset generation"
+author: "Xinwei Li\n li.xinwei@u.nus.edu"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+      highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+```
+
+
+```{r, echo=FALSE, message=FALSE,results='hide'}
+library(tictoc)
+library(doParallel)
+library(Rcpp)
+library(RcppArmadillo)
+library(RcppEigen)
+library(RcppNumerical)
+library(truncnorm)
+file_route = "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\MLBA.cpp"
+```
+
+
+
+```{r}
+sourceCpp(file_route)
+```
+# 1. Dataset Generation 
+
+
+Set N = 800 independent observations. For each choice situation, there would  be nAttr = 3 attributes value,A,B, and C for each alternative, Alt1,Alt2, and Alt3, i.e. J = 3, with Response time ($RT_i, i =1,\cdots,N$). Choice,$RC_i$, would be made to prefer the one with larger probability with given RT and attributes value. 
+
+
+## 1.1. Attribute value and response time random generation
+
+Randomly generate attributes value for N situation, $A\sim N(3,4)$, $B\sim U[0,4]$,and $C\sim N(0,1)$. RT for each observation is decided by the $min_{i\in C_J}\{t_i = \frac{b_i-A}{v_i}\}$, where $v_i\sim N(d_i,1)$ and $b_i\sim CU(A,b)$. Denote X is the matrix of attributes' value, sorted in a long format, whose dimension is $(N J)\times nAttr$. $X = (X_1,X_2,\cdots,X_N)^T$, where $X_i=(X_{i1}^T,\cdots,X_{iJ}^T)^T, J$ is the number of alternatives.
+
+
+```{r}
+# dimension setting
+N = 800  
+nAlt = 3
+nAttr = 3
+
+# set.seed(2025) # seeds for training dataset
+set.seed(41) # seed for out-of-sample
+# attributes value generation
+A = rnorm(N*nAlt ,mean = 3, sd = 4)
+B = runif(N*nAlt ,min = 0, max = 4)
+C = rnorm(N*nAlt ,mean = 0, sd = 1)
+X = cbind(A,B,C)
+
+X.df = sapply(1:nAttr, function(i){(X[,i]-min(X[,i]))/(max(X[,i])-min(X[,i]))})
+
+head(X.df)
+
+
+```
+
+## 1.2. MLBA modelling
+
+ Set the true value of MLBA parameters, following mainstream choice-RT MLBA structure (Trueblood et al., 2014)
+
+
+| notion | parameter | value | status|
+|--------|-------|-------|-------|
+|Attribute Specific Parameters||||
+|$\beta_A$|attribute A specific scaling parameter|1| will be estimated later|
+|$\beta_B$|attribute B specific scaling parameter|2| will be estimated later|
+|$\beta_C$|attribute C specific scaling parameter|5| will be estimated later|
+|Alternative Specific Parameters||||
+|$\zeta_1$|alternative specific constant with reference to alternative 2|0.3| will be estimated later|
+|$\zeta_2$|alternative specific constant|-0.5| will be estimated later|
+|$\zeta_3$|alternative specific constant|1|fixed|
+|Process Parameters||||
+|$\lambda_1$|gain attitude parameter for similarity|1 |  will be estimated later  |
+|$\lambda_2$|loss attitude parameter for similarity|0.5 |  will be estimated later  |
+|$b-A$| difference between threshold to starting point upper bound|10| will be estimated later|
+| $s_0$ |  noise standard deviation for drift rates  | 1| fixed |
+|$A$|starting range|0|fixed|
+
+
+```{r}
+# set true parameter value
+true_param = list( lam1 = 1, lam2 = 0.5, zeta = c(0.3,-0.5,1), beta = c(1,2,5), s0 = 1, b = 10, A = 0)
+```
+
+
+The MLBA assumes that evidence accumulates for each alternative j, agent i, independently and linearly, decided by starting point $k_{ij}\sim CU[0,A]$, drift rate $d_{ij} \sim TN(v_{ij},s_0)$, truncated below 0, and threshold $b$.
+
+
+Moreover, the $v_{ij}$ is determined by the drift rate formula with the attribute value $X_{ij}$,a $nAttr\times 1$ matrix, and other parameters:
+
+$$v_{ij} = \zeta_j+\sum_{m\in C_i}\sum_{k=1}^{nAttr} w_{i,mj,k}\beta_k (X_{ijk}-X_{imk}) \tag{1}$$
+
+,where :
+
+$$w_{i,mj,k} = exp\{-\lambda_1\beta_k(X_{ijk}-X_{imk})I(X_{ijk}-X_{imk}\ge 0)+\lambda_2\beta_k(X_{ijk}-X_{imk})I(X_{ijk}-X_{imk}<0)\}$$
+
+According to the given parameter, the cumulative distribution function of alternative j for observation i,i.e. $RC_i =j$ taken response time $RT_i$ is:
+$$\begin{aligned} F_{i}(j,RT) &= P\{\frac{CU[b-A,b]}{d_{ij}}\le RT\}\\
+& = 1+\frac{b-A-d_{ij}RT}{A}\Phi(\frac{b-A-d_{ij}RT}{s_0RT})-\frac{b-d_{ij}RT}{A}\Phi(\frac{b-d_{ij}RT}{s_0RT})\\
+& +\frac{s_0RT}{A}\phi(\frac{b-A-d_{ij}RT}{s_0RT})-\frac{s_0RT}{A}\phi(\frac{b-d_{ij}RT}{s_0RT})\end{aligned}\tag{2}$$
+
+The density function is:
+$$\begin{aligned} f_{i}(j,RT) &= \frac{1}{A}[ -d_{ij}\Phi(\frac{b-A-d_{ij}RT}{s_0RT})+d_{ij}\Phi(\frac{b-d_{ij}RT}{s_0RT})\\
+& +s_0\phi(\frac{b-A-d_{ij}RT}{s_0RT})-s_0\phi(\frac{b-d_{ij}RT}{s_0RT})]\end{aligned}\tag{3}$$
+, where $\Phi$ and $\phi$ are cdf and pdf for standard norm distribution.
+
+Therefore, the probability to choose j when response time is RT for the observation i is:
+
+$$MLBA_{pdf,i}(RC,RT|s_0,I_0,\lambda_1,\lambda_2,b,A) = f_{i}(RC,RT)\Pi_{j\in C_i,j\neq RC}[1-F_i(j,RT)]\tag{4}$$
+
+<!-- the probability to choose j with given response time RT  for the observation i is: -->
+
+<!-- $$MLBA_{cdf,i}(RC,RT|s_0,I_0,\lambda_1,\lambda_2,b,A) = \int_0^{RT}f_{i}(RC,t)\Pi_{j\in C_i,j\neq RC}[1-F_i(j,t)]dt\tag{5}$$ -->
+
+For those observations whose response time is unknown, assume RT is large enough,
+$$MLBA_{cdf,i}(RC|s_0,I_0,\lambda_1,\lambda_2,b,A) = \int_0^{\infty}f_{i}(RC,t)\Pi_{j\in C_i,j\neq RC}[1-F_i(j,t)]dt\tag{6}$$
+
+## 1.2 RT and Choice generation
+For each observation, the choice with least $t_i$ to arrive at the threshold is the chosen option and its response time is the observation's response time.
+
+```{r}
+
+tic("generation speed")
+# set.seed(2025) # training
+set.seed(12) #test
+
+# decision-boundary draw
+bi = runif(N*nAlt, min = true_param$b, max = true_param$A+true_param$b)
+di = sapply(1:N, function(x){matrix(sapply(1:nAlt,function(c){RCPPdriftmean(X = X.df[((x-1)*nAlt+1):(x*nAlt),],beta = true_param$beta, zeta = true_param$zeta, lam1 = true_param$lam1, lam2 = true_param$lam2, choice = c)}),ncol = 1)})
+
+
+vi = apply(di, 2, function(x){rtruncnorm(1,a = 0,mean = x,sd = true_param$s0)})
+
+
+
+# corresponding time
+ti = bi/vi
+
+# Response time generation
+RT = apply(ti, 2, min)
+# Response time generation
+RC = apply(ti, 2, which.min)
+
+
+
+```
+
+```{r}
+
+summary(as.factor(RC))
+summary(RT)
+
+#####################
+# 800 train
+#   1   2   3 
+# 269 140 391 
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#   2.467   4.704   6.420   7.793   9.145  43.184
+####################
+# 800 test
+
+#  1   2   3 
+# 254 147 399 
+#    Min. 1st Qu.  Median    Mean 3rd Qu. 
+#   1.891   4.796   6.593   8.307   9.715 
+#    Max. 
+# 111.172 
+```
+
+
+```{r}
+# real likelihood calculation
+
+RCPPMLBA_Lik_CO(X = X.df,beta = true_param$beta, zeta = true_param$zeta,lam1 = true_param$lam1, lam2 = true_param$lam2, b = true_param$b+true_param$A, A = true_param$A, s = true_param$s0, choice = RC)
+
+RCPPMLBA_Lik_rtknown(X = X.df,beta = true_param$beta, zeta = true_param$zeta,lam1 = true_param$lam1, lam2 = true_param$lam2, b = true_param$b+true_param$A, A = true_param$A, s = true_param$s0, choice = RC, rt = RT)
+
+RCPPMLBA_Lik_rtg(X = X.df,beta = true_param$beta, zeta = true_param$zeta,lam1 = true_param$lam1, lam2 = true_param$lam2, b = true_param$b+true_param$A, A = true_param$A, s = true_param$s0, choice = RC, rt = RT)
+
+```
+
+
+```{r}
+#wide format of dataframe
+X_wide = matrix(t(X.df),ncol = 9, byrow = TRUE)
+df = data.frame(RC,RT,X_wide)
+colnames(df) = c("chosen","RT","A1","B1","C1","A2","B2","C2", "A3", "B3","C3")
+head(df, 16)
+```
+
+
+```{r}
+# export dataset
+# write.csv(df, "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\simulations\\MLBARCT_data_0801_800.csv", row.names=FALSE)
+
+# write.csv(df, "D:\\onedrive\\OneDrive - National University of Singapore\\Desktop\\New folder\\MLBA_CRT\\RT_paper\\simulations\\MLBARCT_data_0801_800(test).csv", row.names=FALSE)
+
+```
+
+
+
