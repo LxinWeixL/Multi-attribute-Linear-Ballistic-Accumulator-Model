@@ -1,5 +1,5 @@
 # 1. Introduction
-This repository provides all codes and data used in paper _The importance of Response Time in Preference Elicitation: Asymptotic Results_.
+This repository provides all codes and data used in paper _The importance of Response Time in Preference Elicitation: Asymptotic Results_. It includes C++ implementations of MLBA components and R Markdown workflows for estimation and data generation.
 > [!NOTE]
 > **ABSTRACT**
 >
@@ -9,5 +9,24 @@ This repository provides all codes and data used in paper _The importance of Res
   <img src="images/MLBA_simulator.png" alt="Logo" width="1000">
 </picture>
 
-# 2. Structure of Codes
+# 2. Repository Structure
+├── MLBA.cpp
+├── MLBARCT_estimation.Rmd
+├── MLBARCT_estimation_COadj.Rmd
+├── MLBARCT_estimation_hancock.Rmd
+├── MLBARCT_recoery_dataset_generation.Rmd
+
+
+# 3. Quick start
+
+## 1) Clone
+```bash
+git clone https://github.com/LxinWeixL/Multi-attribute-Linear-Ballistic-Accumulator-Model.git
+cd Multi-attribute-Linear-Ballistic-Accumulator-Model
+```
+
+## 2) Requirements
+
+R (≥ 4.3 recommended), rmarkdown, knitr are need to open the .Rmd files without error. 
+Rcpp and a C/C++ toolchain (Rtools on Windows; Xcode CLT on macOS; build-essential on Linux) are necessary for the .rmarkdown files.  Please open the .Rmd and check the first code chunk for the exact package list.
 
