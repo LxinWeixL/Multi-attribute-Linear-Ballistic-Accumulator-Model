@@ -10,6 +10,10 @@ This repository provides all codes and data used in paper _The importance of Res
 </picture>
 
 # 2. Repository Structure
+- **Empirical Study 1** — contains the end-to-end pipeline for the first empirical application (data prep, model estimation, diagnostics, result tables/figures). 
+- **Empirical Study 2** — mirrors the structure of Study 1 for a second dataset/application.
+- **Monte Carlo Experiment** — simulation setup for parameter recovery and estimator comparison; includes scripts/notebooks for generating synthetic datasets and plotting outcomes. 
+
 
 
 
