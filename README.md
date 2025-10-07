@@ -1,5 +1,5 @@
 # 1. Introduction
-This repository provides all codes and data used in paper _The importance of Response Time in Preference Elicitation: Asymptotic Results_. It includes C++ implementations of MLBA components and R Markdown workflows for estimation and data generation.
+This repository provides all codes and data used in paper ![_The importance of Response Time in Preference Elicitation: Asymptotic Results_](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=YyR3OdkAAAAJ&citation_for_view=YyR3OdkAAAAJ%3Au5HHmVD_uO8C&inst=3212728378801010220). It includes C++ implementations of MLBA components and R Markdown workflows for estimation and data generation.
 > [!NOTE]
 > **ABSTRACT**
 >
