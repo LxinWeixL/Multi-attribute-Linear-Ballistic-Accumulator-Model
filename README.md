@@ -9,4 +9,6 @@ This repository provides all codes and data used in paper _The importance of Res
   <source media="(prefers-color-scheme: dark)" srcset="images/MLBA_simulator.png">
   <img src="images/MLBA_simulator.png" alt="Logo" width="1000">
 </picture>
-# 2. Structure of codes
+
+# 2. Structure of Codes
+
