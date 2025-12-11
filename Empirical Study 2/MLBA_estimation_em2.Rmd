@@ -1054,7 +1054,7 @@ for (type0 in type_set){
 ```
 
 
-### 5.1.2 MLE checkplots 
+### 6.1.2 MLE checkplots 
 
 
 
@@ -1155,10 +1155,198 @@ for (type0 in type_set){
 ```
 
 
+### 6.2 Fitness plots
+
+#### 6.2.1 PP df 
+
+##### 6.2.1.1 PP df on MLBA
+
+
+```{r}
+# p-p plot by scenarios
+library(tidyr)
+library(dplyr)
+
+type_set = c("CRT","RTG")
+version = "v4";df_type = "em2"
+result_table = readRDS(file = paste("Result_table_bayesian_",df_type,"_",version,".rds",sep=""))
+
+df_pp_list = list()
+basic_Info = df_info(df = df)
+chosen = matrix(0,nrow = basic_Info$N,ncol =nAlt)
+for (i in 1:basic_Info$N){
+  chosen[i,df$rc[i]] = 1
+}
+
+df_new = data.frame(pid = matrix(t(replicate(nAlt,df$pid)),ncol = 1),
+                    tid = matrix(t(replicate(nAlt,df$tid)),ncol = 1),
+                    did = matrix(t(replicate(nAlt,df$did)),ncol = 1),
+                    TC = basic_Info$attrs[,1],
+                    TT = basic_Info$attrs[,2],
+                    CL = basic_Info$attrs[,3],
+                    rt = matrix(t(replicate(nAlt,df$rt)),ncol = 1) ,
+                    chosen = matrix(t(chosen),ncol = 1))
+df_new$pid = factor(df_new$did)
+real_p = df_new%>% group_by(did) %>%nest()
+
+m=1
+for(type in type_set){
+  est_para1 = result_table[[m]]$est_median[-(npar+1)]
+  est_para1[zeta_index] = est_para1[zeta_index]-true_param$zeta[nAlt]
+  
+  df_pp = data.frame(did = NULL, real_prob = NULL,Alt = NULL, est_prob = NULL)
+  for(i in 1:length(real_p$did)){
+    
+  data_tmp =real_p$data[[i]]
+  temp_chosen = matrix(data_tmp$chosen,nrow = nAlt) 
+  Prob_real = rowSums(temp_chosen)/sum(rowSums(temp_chosen))
+  para = para_fun(para = est_para1)
+  est_prob = sapply(1:nAlt, function(x){
+  if(type =="CRT"){
+    
+   # MLBA_rtknown_all(X = as.matrix(data_tmp[,c(3,4,5)]),beta = para$beta, zeta = para$zeta, lam1 =para$lam1, lam2 = para$lam2,  b = para$b, A =  para$A, s = para$s0, choice =rep(x,nrow(data_tmp)/nAlt) , rt = t(matrix(data_tmp$rt,nrow = 3))[,1])
+    
+     RCPPcdf_MLBA_CO_all(X = as.matrix(data_tmp[,c(3,4,5)]),beta = para$beta, zeta = para$zeta, lam1 =para$lam1, lam2 = para$lam2,  b = para$b, A =  para$A, s = para$s0, choice =rep(x,nrow(data_tmp)/nAlt)) 
+  }
+  else if (type  =="RTG"){
+    MLBA_rtg_all(X = as.matrix(data_tmp[,c(3,4,5)]),beta = para$beta, zeta = para$zeta, lam1 =para$lam1, lam2 = para$lam2,  b = para$b, A =  para$A, s = para$s0, choice =rep(x,nrow(data_tmp)/nAlt) , rt = t(matrix(data_tmp$rt,nrow = 3))[,1])
+  }
+  else{
+   RCPPcdf_MLBA_CO_all(X = as.matrix(data_tmp[,c(3,4,5)]),beta = para$beta, zeta = para$zeta, lam1 =para$lam1, lam2 = para$lam2,  b = para$b, A =  para$A, s = para$s0, choice =rep(x,nrow(data_tmp)/nAlt)) 
+  }  
+    })
+  quantile_est = colSums(est_prob/rowSums(est_prob))/sum(est_prob/rowSums(est_prob)) 
+
+
+  df_tmp = data.frame(did = rep(real_p$did[i],nAlt),
+                      real_prob = Prob_real, 
+                      Alt = c("Ride-hailing","Metro", "Bus"),
+                      est_prob =  quantile_est)
+  
+  df_pp = rbind(df_pp,df_tmp)
+  
+  }
+
+  
+  df_pp$R_square = cor(df_pp$real_prob,df_pp$est_prob, method = "pearson")^2
+  
+  df_pp_list[[m]] = df_pp
+  m = m+1
+}
 
 
 
-# 6. RUM check
+df_pp_list[[1]];df_pp_list[[2]]
+
+```
+
+
+##### 6.2.1.2 PP df on MNL
+
+Please refers to section 7 below for the MNL estimation. The estimation results are stored in  "Result_table_MNL_em2.rds".
+
+```{r}
+mnl = readRDS("Result_table_MNL_em2.rds")
+mnl$coefficients
+basic_Info = df_info(df = df)
+
+MNL_prob = m1.t$prob.alt
+tmp = MNL_prob[,1]
+MNL_prob[,1:2] = MNL_prob[,2:3]
+MNL_prob[,3] = tmp
+
+df_new = data.frame(did = matrix(t(replicate(nAlt,df$did)),ncol = 1),
+                    chosen = matrix(t(chosen),ncol = 1),
+                    est_prob = matrix(t(MNL_prob),ncol = 1))
+df_new$pid = factor(df_new$did)
+real_p = df_new%>% group_by(did) %>%nest()
+
+df_pp = data.frame(did = NULL, real_prob = NULL,Alt = NULL, est_prob = NULL)
+  for(i in 1:length(real_p$did)){
+    
+  data_tmp =real_p$data[[i]]
+  temp_chosen = matrix(data_tmp$chosen,nrow = nAlt) 
+  Prob_real = rowSums(temp_chosen)/sum(rowSums(temp_chosen))
+  para = para_fun(para = est_para1)
+  est_prob = t(matrix(data_tmp$est_prob,nrow = nAlt))
+  
+  quantile_est = colSums(est_prob/rowSums(est_prob))/sum(est_prob/rowSums(est_prob)) 
+
+
+  df_tmp = data.frame(did = rep(real_p$did[i],nAlt),
+                      real_prob = Prob_real, 
+                      Alt = c("Ride-hailing","Metro", "Bus"),
+                      est_prob =  quantile_est)
+  
+  df_pp = rbind(df_pp,df_tmp)
+  
+  }
+
+  
+df_pp$R_square = cor(df_pp$real_prob,df_pp$est_prob, method = "pearson")^2
+
+df_pp_list[[3]] = df_pp
+   
+# saveRDS(df_pp_list,file = paste("PP_df_",df_type,"_",version,".rds",sep=""))
+```
+
+
+## 6.2.2 PP plots
+
+```{r}
+plt2 = list()
+```
+
+
+```{r}
+df_pp_list = readRDS(paste("PP_df_",df_type,"_",version,".rds",sep=""))
+type_set = c("CRT","RTG","MNL")
+version = "v4";df_type = "em2"
+plt2 = list()
+plt2$pp = list()
+m = 1
+for (type in type_set){
+  df_pp = df_pp_list[[m]]
+  plt2$pp[[m]] = 
+  ggplot(data = df_pp)+geom_point(aes(x =real_prob, y = est_prob,shape = did, color = Alt),size = 3,alpha = 0.8)+
+    scale_color_discrete(type = c("#D33F6A","#669157","#7A84F5"))+
+    #scale_shape_manual(values = c(21,22,23,24))+
+    geom_abline(aes(intercept = 0, slope = 1))+
+    labs(title = bquote(.(type)~": "~R^2~" = "~.(round(df_pp$R_square,3))),
+         x = "Observed Proportion", y = "Estimated Proportion",shape = "Device")+
+    theme_classic()+
+    coord_cartesian(xlim = c(0,0.8),ylim = c(0,0.8))+
+     theme( axis.text.x = element_text(size= 12),
+            axis.text.y = element_text(size= 12),
+         axis.title = element_text(size= 12),
+         title = element_text(size= 12),
+         legend.text = element_text(size  = 12),
+         legend.title = element_text(size  = 12),
+         strip.text = element_text(size  = 12),
+         legend.position = "right")
+  
+  if(m!=1){
+    plt2$pp[[m]] = plt2$pp[[m]] +labs(y = "")
+  }
+  m = m+1
+}
+
+```
+
+
+```{r}
+# concate a mixture plots
+library(ggpubr)
+plt2$mix = list()
+
+plt2$mix[[1]] = ggarrange(plotlist = plt2$pp,nrow = 1,ncol = 3, common.legend = T,legend = "bottom")
+plt2$mix[[1]]
+# saveRDS(plt2,"PP_plot_em2.rds")
+```
+
+
+
+# 7. RUM check
 ```{r}
 library(gmnl)
 library(mlogit)
@@ -1167,18 +1355,19 @@ library(readr)
 
 
 ```{r}
+basic_Info = df_info(df = df)
 choice = function(c){
   #c is the index of chosen alternative
   
   tmp = matrix(0,nrow = nAlt, ncol = length(c))
-  for( i in 1:N){
+  for( i in 1:basic_Info$N){
     tmp[c[i],i] = 1
   }
   return(matrix(tmp,ncol = 1))
 }
 
 
-df_long = data.frame(attrs,Alt = rep(1:3,N),chosen = choice(df$rc))
+df_long = data.frame(basic_Info$attrs,Alt = rep(1:3,basic_Info$N),chosen = choice(basic_Info$RC))
 colnames(df_long) = c("(neg)TC","(neg)TT","CL","Alt","chosen")
 head(df_long)
 
@@ -1190,8 +1379,9 @@ df_mnl = mlogit.data(df_long, choice = "chosen", shape = "long", alt.levels = c(
 m1.t = gmnl(chosen~`(neg)TC`+`(neg)TT`+CL|0|0, data = df_mnl)
 
 summary(m1.t); BIC(m1.t)
-# -684.47
+# LLK: -684.47; BIC :  1389.406
 # -623.6
+# saveRDS(m1.t,file =paste("Result_table_MNL_",df_type,".rds",sep=""))
 ```
 
 ```{r}
@@ -1204,13 +1394,8 @@ MNL_c = apply(MNL_prob,1,which.max)
 acc = sum(MNL_c==df$rc)/length(df$rc)*100
 
 tmp = matrix(0,ncol = nAlt, nrow = length(df$rc))
-for( i in 1:N){tmp[i,df$rc[i]] = 1}
+for( i in 1:basic_Info$N){tmp[i,df$rc[i]] = 1}
 brier = mean((tmp-MNL_prob)^2)*nAlt
 
 c(acc,brier)  # 71.1643090  0.4189773;
 ```
-
-
-
-
-
