@@ -205,8 +205,9 @@ migrate_step = function(current_chain_list){
       else  new_theta = theta_res[-(npar+1)] + add
      
       new_post = poster(para_list = list(para = new_theta, type = type0))
-      prev_post = theta_res[(npar+1)]
       theta_res = current_chain_list[temp_sample[g],]
+      prev_post = theta_res[(npar+1)]
+      
       
       alpha = runif(1)
       ratio = exp(new_post-prev_post)
