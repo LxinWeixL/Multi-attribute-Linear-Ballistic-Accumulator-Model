@@ -658,7 +658,7 @@ double  derivative_mlba_co_di(arma::mat X, arma::vec beta, arma::vec zeta, doubl
 	MLBA_deri_di f(X, beta,zeta,lam1, lam2, b, s, A,  choice,di) ;
 	double err_est;
     	int err_code;
-	double res = integrate(f, lower, upper, err_est, err_code,100);
+	double res = integrate(f, lower, upper, err_est, err_code,1000);
 	if(err_est>0.01) res = 0;
 	if(err_code!=0) res = 0;
 	return res;
@@ -671,7 +671,7 @@ double  derivative_mlba_co_b(arma::mat X, arma::vec beta, arma::vec zeta, double
 	MLBA_deri_b f(X, beta,zeta,lam1, lam2, b, s, A,  choice) ;
 	double err_est;
     	int err_code;
-	double res = integrate(f, lower, upper, err_est, err_code,100);
+	double res = integrate(f, lower, upper, err_est, err_code,1000);
 	if(err_est>0.01) res = 0;
 	if(err_code!=0) res = 0;
 	return res;
